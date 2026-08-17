@@ -1,3 +1,4 @@
+import { Component, type ReactNode } from "react";
 import { cx } from "./lib/utils";
 import { useApp, type View } from "./lib/store";
 import { ToastHost } from "./components/ui";
@@ -5,7 +6,45 @@ import Home from "./pages/Home";
 import Editor from "./pages/Editor";
 import Models from "./pages/Models";
 import Settings from "./pages/Settings";
-import { IconClipboard, IconCpu, IconDatabase, IconLogo, IconShield } from "./components/icons";
+import { IconAlert, IconClipboard, IconCpu, IconDatabase, IconLogo, IconShield } from "./components/icons";
+
+/** 全局错误边界：任何渲染异常都显示可读的错误卡片，而不是白屏 */
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex h-screen items-center justify-center bg-paper-100 p-6" style={{ fontFamily: '"Noto Sans SC", "PingFang SC", sans-serif' }}>
+          <div className="w-full max-w-md rounded-2xl border border-ink-200 bg-white p-6 shadow-2xl shadow-ink-950/10">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-danger-100 text-danger-600">
+                <IconAlert size={18} />
+              </span>
+              <div>
+                <h1 className="text-[16px] font-bold" style={{ color: "#101817" }}>页面渲染出错了</h1>
+                <p className="text-[11px]" style={{ color: "#6d7d76" }}>应用遇到了意外错误，你的本地数据不会丢失</p>
+              </div>
+            </div>
+            <pre className="mt-4 max-h-32 overflow-auto rounded-lg p-3 font-mono text-[11px] leading-relaxed" style={{ background: "#f0f3ee", color: "#9c2f28" }}>
+              {this.state.error.message || String(this.state.error)}
+            </pre>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 w-full rounded-md px-3 py-2 text-[13px] font-medium text-white transition active:scale-[0.98]"
+              style={{ background: "#0e7a6c" }}
+            >
+              重新加载应用
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function NavItem({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
   return (
@@ -24,6 +63,14 @@ function NavItem({ active, onClick, icon, label }: { active: boolean; onClick: (
 }
 
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppShell />
+    </ErrorBoundary>
+  );
+}
+
+function AppShell() {
   const view = useApp((s) => s.view);
   const go = useApp((s) => s.go);
   const privacy = useApp((s) => s.privacy);

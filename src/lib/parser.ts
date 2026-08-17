@@ -4,10 +4,8 @@
  * ------------------------------------------------------------------ */
 import type { BasicInfo, Block, BlockType, ResumeData, Section, SectionType } from "../types";
 import { uid, nowISO } from "./utils";
-import * as pdfjs from "pdfjs-dist";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+// pdfjs-dist 按需动态加载：不进入初始包，避免第三方解析库影响首屏启动
 
 export type SupportedExt = "pdf" | "docx" | "md" | "txt";
 export const ACCEPT_EXTS: SupportedExt[] = ["pdf", "docx", "md", "txt"];
@@ -24,6 +22,9 @@ export interface ParseResult {
 
 async function extractPdf(file: File): Promise<ParseResult> {
   try {
+    const pdfjs = await import("pdfjs-dist");
+    const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+    pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
     const buf = await file.arrayBuffer();
     const doc = await pdfjs.getDocument({ data: buf }).promise;
     const parts: string[] = [];
