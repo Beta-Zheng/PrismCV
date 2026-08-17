@@ -1,0 +1,287 @@
+import { useState } from "react";
+import type { ModelProvider, ModelProtocol, ModelType, RouteStrategy } from "../types";
+import { cx, nowISO, uid } from "../lib/utils";
+import { testProvider } from "../lib/ai";
+import { useApp } from "../lib/store";
+import { Btn, Confirm, Modal, ModalHeader, Toggle } from "../components/ui";
+import { IconAlert, IconCheck, IconCpu, IconEdit, IconEye, IconEyeOff, IconPlus, IconShield, IconTrash, IconZap } from "../components/icons";
+
+const TYPE_META: Record<ModelType, { label: string; cls: string }> = {
+  local: { label: "本地", cls: "bg-brand-600 text-white" },
+  external: { label: "外部", cls: "bg-seal-500 text-white" },
+  private: { label: "私有", cls: "bg-ink-800 text-paper-50" },
+};
+
+interface TestState {
+  running?: boolean;
+  ok?: boolean;
+  latency?: number;
+  message?: string;
+}
+
+function ModelForm({ initial, onClose }: { initial: ModelProvider | null; onClose: () => void }) {
+  const { saveModel, toast } = useApp();
+  const [m, setM] = useState<ModelProvider>(
+    initial ?? {
+      id: uid("model"),
+      name: "",
+      type: "local",
+      protocol: "ollama",
+      base_url: "http://localhost:11434",
+      api_key: "",
+      model_name: "",
+      temperature: 0.3,
+      max_tokens: 2048,
+      timeout_ms: 30000,
+      enabled: true,
+      created_at: nowISO(),
+    }
+  );
+  const [showKey, setShowKey] = useState(false);
+  const set = (patch: Partial<ModelProvider>) => setM((v) => ({ ...v, ...patch }));
+
+  const submit = () => {
+    if (!m.name.trim() || !m.model_name.trim()) {
+      toast("warn", "请填写模型名称与 Model 名称");
+      return;
+    }
+    saveModel({ ...m, name: m.name.trim(), model_name: m.model_name.trim() });
+    toast("ok", `模型「${m.name}」已保存`);
+    onClose();
+  };
+
+  return (
+    <Modal open onClose={onClose} width="max-w-md">
+      <ModalHeader title={initial ? "编辑模型" : "新增模型"} sub={m.type === "external" ? "外部模型默认不参与路由，除非在隐私设置中显式开启" : "本地模型优先参与路由"} onClose={onClose} />
+      <div className="flex flex-col gap-3 px-5 pb-5">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="field-label">名称</span>
+            <input className="field-input" value={m.name} placeholder="本地 Ollama" onChange={(e) => set({ name: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="field-label">类型</span>
+            <select className="field-input" value={m.type} onChange={(e) => set({ type: e.target.value as ModelType })}>
+              <option value="local">local（本地）</option>
+              <option value="external">external（外部）</option>
+              <option value="private">private（私有网络）</option>
+            </select>
+          </label>
+        </div>
+        <label className="block">
+          <span className="field-label">协议</span>
+          <div className="flex rounded-lg bg-paper-200 p-0.5">
+            {(
+              [
+                ["ollama", "Ollama"],
+                ["openai_compatible", "OpenAI Compatible"],
+              ] as Array<[ModelProtocol, string]>
+            ).map(([k, label]) => (
+              <button key={k} type="button" onClick={() => set({ protocol: k, base_url: k === "ollama" ? "http://localhost:11434" : m.base_url.includes("localhost:11434") ? "https://api.openai.com/v1" : m.base_url })} className={cx("flex-1 rounded-md py-1.5 text-[12px] font-bold transition", m.protocol === k ? "bg-white text-ink-900 shadow-sm" : "text-ink-400")}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </label>
+        <label className="block">
+          <span className="field-label">Base URL</span>
+          <input className="field-input font-mono" value={m.base_url} placeholder={m.protocol === "ollama" ? "http://localhost:11434" : "https://api.openai.com/v1"} onChange={(e) => set({ base_url: e.target.value })} />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="field-label">Model</span>
+            <input className="field-input font-mono" value={m.model_name} placeholder={m.protocol === "ollama" ? "qwen2.5:7b" : "gpt-4o-mini"} onChange={(e) => set({ model_name: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="field-label">API Key{m.type !== "external" && "（可选）"}</span>
+            <div className="relative">
+              <input className="field-input pr-8 font-mono" type={showKey ? "text" : "password"} value={m.api_key} placeholder={m.type === "external" ? "sk-…" : "本地可留空"} onChange={(e) => set({ api_key: e.target.value })} />
+              <button type="button" className="absolute right-1.5 top-1/2 -translate-y-1/2 text-ink-300 hover:text-ink-600" onClick={() => setShowKey((v) => !v)} aria-label="显示/隐藏 Key">
+                {showKey ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+              </button>
+            </div>
+          </label>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <label className="block">
+            <span className="field-label">Temperature</span>
+            <input className="field-input font-mono" type="number" step={0.1} min={0} max={2} value={m.temperature} onChange={(e) => set({ temperature: Number(e.target.value) })} />
+          </label>
+          <label className="block">
+            <span className="field-label">Max Tokens</span>
+            <input className="field-input font-mono" type="number" min={256} value={m.max_tokens} onChange={(e) => set({ max_tokens: Number(e.target.value) })} />
+          </label>
+          <label className="block">
+            <span className="field-label">超时（ms）</span>
+            <input className="field-input font-mono" type="number" min={5000} step={5000} value={m.timeout_ms} onChange={(e) => set({ timeout_ms: Number(e.target.value) })} />
+          </label>
+        </div>
+        <div className="flex items-center justify-between rounded-lg bg-paper-100 px-3 py-2">
+          <span className="text-[12.5px] font-medium text-ink-700">启用该模型</span>
+          <Toggle checked={m.enabled} onChange={(v) => set({ enabled: v })} label="启用" />
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <Btn variant="ghost" onClick={onClose}>取消</Btn>
+          <Btn variant="primary" onClick={submit}>保存模型</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+export default function Models() {
+  const { models, deleteModel, toggleModel, privacy, setPrivacy, externalCallCount, toast } = useApp();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<ModelProvider | null>(null);
+  const [delTarget, setDelTarget] = useState<ModelProvider | null>(null);
+  const [tests, setTests] = useState<Record<string, TestState>>({});
+  const [confirmExternal, setConfirmExternal] = useState(false);
+
+  const runTest = async (p: ModelProvider) => {
+    setTests((t) => ({ ...t, [p.id]: { running: true } }));
+    const r = await testProvider(p);
+    setTests((t) => ({ ...t, [p.id]: { running: false, ok: r.ok, latency: r.latency, message: r.message } }));
+  };
+
+  return (
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-6 pb-16 pt-8">
+      <header className="anim-fade-up">
+        <p className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-brand-600">
+          <IconCpu size={12} /> LLM Gateway
+        </p>
+        <h1 className="font-display text-[30px] font-black text-ink-900">模型与隐私</h1>
+        <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-ink-500">
+          支持 Ollama 本地模型与 OpenAI Compatible 外部模型。默认策略：<b className="text-ink-800">本地优先</b>，外部模型默认关闭；无可用模型时自动降级为本地规则引擎。
+        </p>
+      </header>
+
+      {/* 隐私与路由 */}
+      <section className="anim-fade-up rounded-2xl border border-ink-200 bg-paper-25 p-5" style={{ animationDelay: "0.05s" }}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", privacy.allowExternal ? "bg-seal-100 text-seal-600" : "bg-brand-50 text-brand-600")}>
+              <IconShield size={19} />
+            </span>
+            <div>
+              <h2 className="text-[15px] font-bold text-ink-900">允许调用外部模型</h2>
+              <p className="mt-0.5 text-[12px] leading-relaxed text-ink-400">
+                开启后，当本地模型不可用时可将条目内容发送到外部服务。调用前会在界面明确提示。当前累计外部调用 <b className="font-mono text-ink-700">{externalCallCount}</b> 次。
+              </p>
+            </div>
+          </div>
+          <Toggle
+            checked={privacy.allowExternal}
+            onChange={(v) => {
+              if (v) setConfirmExternal(true);
+              else {
+                setPrivacy({ allowExternal: false });
+                toast("ok", "外部模型已关闭，所有请求仅走本地");
+              }
+            }}
+            label="允许外部模型"
+          />
+        </div>
+        <div className="mt-4 grid gap-3 border-t border-ink-100 pt-4 sm:grid-cols-3">
+          {(
+            [
+              ["local_first", "local_first", "本地优先，本地不可用且已授权时才用外部"],
+              ["ask_before_external", "ask_before_external", "每次使用外部模型前弹窗确认"],
+              ["local_only", "local_only", "绝不发起外部请求，无本地模型时用规则引擎"],
+            ] as Array<[RouteStrategy, string, string]>
+          ).map(([k, label, desc]) => (
+            <button key={k} onClick={() => { setPrivacy({ route: k }); toast("ok", `路由策略已切换为 ${k}`); }} className={cx("rounded-xl border p-3 text-left transition-all", privacy.route === k ? "border-brand-500 bg-brand-50 shadow-sm" : "border-ink-200 bg-white hover:border-ink-300")}>
+              <span className={cx("flex items-center gap-1.5 font-mono text-[11.5px] font-bold", privacy.route === k ? "text-brand-700" : "text-ink-700")}>
+                {privacy.route === k && <IconCheck size={11} />}
+                {label}
+              </span>
+              <span className="mt-1 block text-[10.5px] leading-snug text-ink-400">{desc}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 模型列表 */}
+      <section className="anim-fade-up" style={{ animationDelay: "0.1s" }}>
+        <div className="mb-2.5 flex items-center justify-between">
+          <h2 className="font-display text-[18px] font-bold text-ink-900">已配置模型 <span className="font-mono text-[12px] font-medium text-ink-300">{models.length}</span></h2>
+          <Btn variant="primary" className="h-8 text-[12px]" onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <IconPlus size={13} /> 新增模型
+          </Btn>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {models.map((m) => {
+            const t = tests[m.id];
+            return (
+              <div key={m.id} className={cx("group rounded-xl border bg-paper-25 p-4 transition-all", m.enabled ? "border-ink-200 shadow-sm shadow-ink-950/5" : "border-dashed border-ink-200 opacity-75")}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate text-[14px] font-bold text-ink-900">{m.name}</h3>
+                      <span className={cx("chip", TYPE_META[m.type].cls)}>{TYPE_META[m.type].label}</span>
+                    </div>
+                    <p className="mt-1 truncate font-mono text-[10.5px] text-ink-400">{m.protocol} · {m.base_url}</p>
+                  </div>
+                  <Toggle checked={m.enabled} onChange={() => { toggleModel(m.id); toast("info", `「${m.name}」已${m.enabled ? "停用" : "启用"}`); }} label="启用模型" />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="chip bg-paper-200 font-mono text-ink-600">{m.model_name}</span>
+                  <span className="chip bg-paper-200 font-mono text-ink-400">temp {m.temperature}</span>
+                  <span className="chip bg-paper-200 font-mono text-ink-400">{m.timeout_ms / 1000}s 超时</span>
+                  {m.api_key && <span className="chip bg-paper-200 font-mono text-ink-400">key ••••{m.api_key.slice(-4)}</span>}
+                </div>
+                {t && !t.running && (
+                  <p className={cx("mt-2.5 flex items-start gap-1.5 rounded-lg px-2.5 py-2 text-[11px] font-medium leading-snug", t.ok ? "bg-brand-50 text-brand-800" : "bg-danger-100 text-danger-700")}>
+                    {t.ok ? <IconCheck size={12} className="mt-0.5 shrink-0" /> : <IconAlert size={12} className="mt-0.5 shrink-0" />}
+                    <span>{t.message}{t.ok && <span className="ml-1 font-mono text-[10px] opacity-70">{t.latency}ms · JSON 输出可用</span>}</span>
+                  </p>
+                )}
+                <div className="mt-3 flex items-center gap-1.5 border-t border-ink-100 pt-2.5">
+                  <Btn variant="outline" className="h-7 px-2.5 text-[11.5px]" onClick={() => runTest(m)} disabled={t?.running}>
+                    <IconZap size={12} /> {t?.running ? "测试中…" : "测试连接"}
+                  </Btn>
+                  <div className="ml-auto flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button className="tool-btn" onClick={() => { setEditing(m); setFormOpen(true); }} aria-label="编辑模型">
+                      <IconEdit size={14} />
+                    </button>
+                    <button className="tool-btn hover:bg-danger-100 hover:text-danger-600" onClick={() => setDelTarget(m)} aria-label="删除模型">
+                      <IconTrash size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-ink-300">
+          提示：本地 Ollama 需先在本机运行 <span className="font-mono text-ink-400">ollama serve</span> 并拉取模型（如 <span className="font-mono text-ink-400">ollama pull qwen2.5:7b</span>）。API Key 仅保存在本机，不在日志与界面明文展示。
+        </p>
+      </section>
+
+      {formOpen && <ModelForm initial={editing} onClose={() => setFormOpen(false)} />}
+
+      <Confirm
+        open={!!delTarget}
+        danger
+        title={`删除模型「${delTarget?.name}」？`}
+        desc="删除后相关路由将失效；若没有其他可用模型，AI 功能会降级为本地规则引擎。"
+        confirmText="删除模型"
+        onConfirm={() => { if (delTarget) { deleteModel(delTarget.id); toast("ok", "模型已删除"); } setDelTarget(null); }}
+        onCancel={() => setDelTarget(null)}
+      />
+
+      <Confirm
+        open={confirmExternal}
+        title="开启外部模型？"
+        desc={
+          <span>
+            开启后，当本地模型不可用时，简历条目内容可能被发送到你配置的外部 API 服务进行处理。
+            <b className="text-ink-800"> 默认不会自动调用</b>，每次外部调用前都会明确提示。
+          </span>
+        }
+        confirmText="我了解风险，开启"
+        onConfirm={() => { setPrivacy({ allowExternal: true }); setConfirmExternal(false); toast("warn", "外部模型已开启"); }}
+        onCancel={() => setConfirmExternal(false)}
+      />
+    </div>
+  );
+}
