@@ -125,6 +125,12 @@ function parseDates(line: string): { start: string; end: string; rest: string } 
   if (single) {
     return { start: fmtDate(single[1], single[2]), end: "", rest: line.replace(single[0], "").replace(/[|｜·•,，\s]+$/, "").replace(/^[|｜·•,，\s]+/, "") };
   }
+  // 兜底：独立年份（如「AWS Solutions Architect 2021」），满足「日期尽量转为 YYYY」
+  const yearOnly = line.match(/\b((?:19|20)\d{2})\b|((?:19|20)\d{2})$/);
+  if (yearOnly) {
+    const y = yearOnly[1] || yearOnly[2];
+    return { start: y, end: "", rest: line.replace(y, "").replace(/[|｜·•,，\s]+$/, "").replace(/^[|｜·•,，\s]+/, "").trim() || line };
+  }
   return { start: "", end: "", rest: line };
 }
 
