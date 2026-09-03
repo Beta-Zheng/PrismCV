@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useRef, type ReactNode, type RefObject } from "react";
 import type { AIAction, Block, Resume, Section } from "../types";
 import { ACTION_LABELS, SECTION_LABELS } from "../types";
 import { cx } from "../lib/utils";
@@ -14,6 +14,73 @@ function F({ label, children, className }: { label: string; children: ReactNode;
       <span className="field-label">{label}</span>
       {children}
     </label>
+  );
+}
+
+/* ---------------- 行内加粗（Markdown ** 标记） ---------------- */
+
+function wrapSelection(el: HTMLInputElement | HTMLTextAreaElement | null, onChange: (v: string) => void) {
+  if (!el) return;
+  const s = el.selectionStart ?? 0;
+  const e = el.selectionEnd ?? 0;
+  const v = el.value;
+  const sel = v.slice(s, e);
+  const nv = v.slice(0, s) + "**" + sel + "**" + v.slice(e);
+  onChange(nv);
+  requestAnimationFrame(() => {
+    el.focus();
+    try {
+      el.setSelectionRange(s + 2, s + 2 + sel.length);
+    } catch {
+      /* noop */
+    }
+  });
+}
+
+function BoldButton({ elRef, onChange }: { elRef: RefObject<HTMLInputElement | HTMLTextAreaElement>; onChange: (v: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => wrapSelection(elRef.current, onChange)}
+      className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded border border-ink-200 bg-white/90 text-[12px] font-bold text-ink-500 transition hover:border-brand-400 hover:text-brand-700"
+      title="选中文字后点击：用 ** 包裹以加粗"
+      aria-label="加粗选中文字"
+    >
+      B
+    </button>
+  );
+}
+
+function RichField({
+  label, value, onChange, placeholder, textarea, rows, mono, className,
+}: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean; rows?: number; mono?: boolean; className?: string;
+}) {
+  const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  return (
+    <F label={label} className={className}>
+      <div className="relative">
+        {textarea ? (
+          <textarea
+            ref={ref as RefObject<HTMLTextAreaElement>}
+            className={cx("field-input resize-y leading-relaxed pr-8", mono && "font-mono")}
+            rows={rows ?? 4}
+            value={value}
+            placeholder={placeholder}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        ) : (
+          <input
+            ref={ref as RefObject<HTMLInputElement>}
+            className={cx("field-input pr-8", mono && "font-mono")}
+            value={value}
+            placeholder={placeholder}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        )}
+        <BoldButton elRef={ref} onChange={onChange} />
+      </div>
+    </F>
   );
 }
 
@@ -54,15 +121,20 @@ export function TagInput({ values, onChange, placeholder }: { values: string[]; 
 }
 
 function BulletsEdit({ value, onChange, label = "要点（每行一条）" }: { value: string[]; onChange: (v: string[]) => void; label?: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
   return (
     <F label={label} className="col-span-2">
-      <textarea
-        value={value.join("\n")}
-        onChange={(e) => onChange(e.target.value.split("\n"))}
-        rows={Math.max(3, value.length + 1)}
-        placeholder={"主导 XX 系统开发，将耗时从 3s 降至 1s\n每行一条，建议「动词 + 内容 + 成果」"}
-        className="field-input resize-y leading-relaxed"
-      />
+      <div className="relative">
+        <textarea
+          ref={ref}
+          className="field-input resize-y leading-relaxed pr-8"
+          value={value.join("\n")}
+          onChange={(e) => onChange(e.target.value.split("\n"))}
+          rows={Math.max(3, value.length + 1)}
+          placeholder={"主导 XX 系统开发，将耗时从 3s 降至 1s\n每行一条，建议「动词 + 内容 + 成果」（可选 **关键词** 加粗）"}
+        />
+        <BoldButton elRef={ref} onChange={(v) => onChange(v.split("\n"))} />
+      </div>
     </F>
   );
 }
@@ -353,9 +425,7 @@ function BasicInfoEditor({ resume }: { resume: Resume }) {
   return (
     <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 px-3 py-3">
       {fields.map((f) => (
-        <F key={f.key} label={f.label}>
-          <input className="field-input" value={b[f.key]} placeholder={f.ph} onChange={(e) => patchBasic(resume.id, { [f.key]: e.target.value })} />
-        </F>
+        <RichField key={f.key} label={f.label} value={b[f.key]} placeholder={f.ph} onChange={(v) => patchBasic(resume.id, { [f.key]: v })} />
       ))}
     </div>
   );

@@ -21,6 +21,7 @@ export default function Home() {
   const [modal, setModal] = useState<"create" | null>(null);
   const [tab, setTab] = useState<"file" | "paste">("file");
   const [pipe, setPipe] = useState<PipeStep[] | null>(null);
+  const [parsing, setParsing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pasteText, setPasteText] = useState("");
@@ -46,7 +47,7 @@ export default function Home() {
     async (text: string, source: SourceKind, sourceName?: string, keepPipe = false) => {
       if (runningRef.current) return;
       runningRef.current = true;
-      setTab("paste");
+      setParsing(true);
       setError(null);
       if (!keepPipe) {
         setPipe(PIPE_STEPS.map((s) => ({ ...s })));
@@ -60,18 +61,28 @@ export default function Home() {
       setStep(2, "run");
       const data = structureResume(text, source, sourceName);
       await new Promise((r) => setTimeout(r, 340));
-      const hasContent = data.sections.some((s) => s.blocks.length > 0 || (s.type === "summary" && s.blocks.some((b) => b.description)));
+      // 有意义内容 = 任意「真实」模块含实质块，或基本信息已抓到姓名/邮箱/电话。
+      // 注意：summary/skills 两栏永远各塞一个空占位块，所以必须按「description/skills 是否非空」判断，
+      // 否则 hasContent 恒为 true、失败分支（未能识别）永远走不到（原代码即此死代码）。
+      const hasContent =
+        data.sections.some((s) => {
+          if (s.type === "summary") return s.blocks.some((b) => b.description?.trim());
+          if (s.type === "skills") return s.blocks.some((b) => (b.skills?.length ?? 0) > 0);
+          return s.blocks.length > 0;
+        }) || !!(data.basic_info.name || data.basic_info.email || data.basic_info.phone);
       setStep(2, hasContent ? "done" : "fail");
       if (!hasContent) {
         setStep(3, "fail");
         setError("未能从文本中识别出结构化内容。你可以直接点击下方按钮创建空白草稿，再手动填写各模块。");
         runningRef.current = false;
+        setParsing(false);
         return;
       }
       setStep(3, "run");
       await new Promise((r) => setTimeout(r, 220));
       setStep(3, "done");
       runningRef.current = false;
+      setParsing(false);
       setTimeout(() => finishTo(data, data.basic_info.name || sourceName?.replace(/\.\w+$/, "") || "未命名简历"), 300);
     },
     [finishTo]
@@ -80,13 +91,16 @@ export default function Home() {
   const handleFile = useCallback(
     async (file: File) => {
       setError(null);
+      setParsing(true);
       const ext = (file.name.split(".").pop() || "").toLowerCase() as SupportedExt;
       if (!ACCEPT_EXTS.includes(ext)) {
         setError(`仅支持 PDF、DOCX、MD、TXT 文件（收到 .${ext || "未知"}）`);
+        setParsing(false);
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
         setError(`文件大小超过限制（${formatBytes(file.size)} > 10MB）`);
+        setParsing(false);
         return;
       }
       setTab("file");
@@ -99,9 +113,13 @@ export default function Home() {
       if (!res.ok || !res.text) {
         setStep(1, "fail");
         setError(res.error || "文件读取失败");
+        setParsing(false);
         return;
       }
       setStep(1, "done");
+      if (res.maybeMultiColumn) {
+        toast("warn", "检测到疑似多栏 / 分栏版式，解析的阅读顺序可能不准确，请在编辑器中核对，或改用「粘贴文本」");
+      }
       runningRef.current = false;
       await runParse(res.text, "file", file.name, true);
     },
@@ -282,8 +300,8 @@ export default function Home() {
       </div>
 
       {/* 创建弹窗 */}
-      <Modal open={modal === "create"} onClose={() => { if (!runningRef.current) { setModal(null); setPipe(null); setError(null); } }} width="max-w-xl">
-        <ModalHeader title="创建简历" sub="支持 PDF / DOCX / MD / TXT，或粘贴纯文本；解析失败可随时切换到粘贴兜底" onClose={() => { if (!runningRef.current) { setModal(null); setPipe(null); setError(null); } }} />
+      <Modal open={modal === "create"} onClose={() => { if (!runningRef.current) { setModal(null); setPipe(null); setError(null); setParsing(false); } }} width="max-w-xl">
+        <ModalHeader title="创建简历" sub="支持 PDF / DOCX / MD / TXT，或粘贴纯文本；解析失败可随时切换到粘贴兜底" onClose={() => { if (!runningRef.current) { setModal(null); setPipe(null); setError(null); setParsing(false); } }} />
         <div className="px-5 pb-5">
           <div className="mb-4 mt-1 flex rounded-lg bg-paper-200 p-0.5">
             {([["file", "上传文件"], ["paste", "粘贴文本"]] as const).map(([k, label]) => (
@@ -313,7 +331,7 @@ export default function Home() {
               <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={9} placeholder={"粘贴简历全文，例如：\n\n陈墨\n高级前端工程师\nchenmo@example.com\n\n工作经历\n星云科技 | 高级前端工程师 2021.03 - 至今\n- 主导交易中台重构…"} className="field-input resize-none leading-relaxed" />
               <div className="mt-2.5 flex justify-end gap-2">
                 <Btn variant="ghost" onClick={() => setPasteText("")}>清空</Btn>
-                <Btn variant="primary" disabled={!pasteText.trim() || !!pipe} onClick={() => { if (!pasteText.trim()) { toast("warn", "请输入简历内容"); return; } runParse(pasteText, "pasted_text"); }}>
+                <Btn variant="primary" disabled={!pasteText.trim() || parsing} onClick={() => { if (!pasteText.trim()) { toast("warn", "请输入简历内容"); return; } runParse(pasteText, "pasted_text"); }}>
                   <IconSpark size={13} /> 解析文本
                 </Btn>
               </div>

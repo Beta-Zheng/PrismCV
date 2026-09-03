@@ -324,7 +324,13 @@ export const useApp = create<AppState>()(
         const provider = sel.provider;
         if (provider.type === "external") {
           set((s) => ({ externalCallCount: s.externalCallCount + 1 }));
-          get().toast("warn", `正在使用外部模型「${provider.name}」，内容将发送至 ${new URL(provider.base_url || "https://api.openai.com").host}`);
+          let host = "api.openai.com";
+          try {
+            host = new URL(provider.base_url || "https://api.openai.com").host;
+          } catch {
+            // base_url 非法时回退到默认值，不抛出未捕获异常
+          }
+          get().toast("warn", `正在使用外部模型「${provider.name}」，内容将发送至 ${host}`);
         }
         const resumeSummary = buildResumeSummary(resume.data);
         const jdJson =
