@@ -72,6 +72,7 @@ export interface ResumeData {
 export type FontKey = "sans" | "serif" | "system" | "kai" | "mono" | "fangsong";
 export type DensityKey = "compact" | "medium" | "loose";
 export type HeaderLayoutKey = "row" | "stack";
+export type BulletStyleKey = "disc" | "diamond" | "arrow" | "ordered";
 
 export interface Resume {
   id: string;
@@ -87,6 +88,8 @@ export interface Resume {
     density?: DensityKey;
     /** 条目头布局：row=标题居左·日期居右；stack=标题居上·信息居下 */
     header_layout?: HeaderLayoutKey;
+    /** 要点列表样式：disc=圆点 / diamond=菱形 / arrow=箭头 / ordered=有序数字 */
+    bullet_style?: BulletStyleKey;
   };
   created_at: string;
   updated_at: string;

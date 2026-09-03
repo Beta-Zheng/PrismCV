@@ -282,6 +282,30 @@ export default function Editor({ resumeId }: { resumeId: string }) {
               </div>
             </MenuSection>
           )}
+
+          <MenuSection title="要点列表">
+            <div className="grid grid-cols-2 gap-1">
+              {(
+                [
+                  ["ordered", "有序 1. 2. 3."],
+                  ["disc", "圆点 ●"],
+                  ["diamond", "菱形 ◆"],
+                  ["arrow", "箭头 →"],
+                ] as const
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  onClick={() => app.setTheme(resumeId, { bullet_style: k })}
+                  className={cx(
+                    "rounded-md px-2 py-1 text-[11px] font-medium transition",
+                    (resume.theme.bullet_style ?? "diamond") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "bg-paper-100 text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </MenuSection>
         </ToolbarMenu>
 
         {/* 操作组 */}

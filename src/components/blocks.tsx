@@ -3,7 +3,7 @@ import type { AIAction, Block, Resume, Section } from "../types";
 import { ACTION_LABELS, SECTION_LABELS } from "../types";
 import { cx, fileToDataUrl, prepEditorHtml, stripHtml } from "../lib/utils";
 import { useApp } from "../lib/store";
-import { IconChevronDown, IconChevronUp, IconEye, IconEyeOff, IconPlus, IconSpark, IconTrash, IconUpload, IconX } from "./icons";
+import { IconArrowRight, IconChevronDown, IconChevronUp, IconEye, IconEyeOff, IconPlus, IconSpark, IconTrash, IconUpload, IconX } from "./icons";
 import { Confirm } from "./ui";
 
 /* ---------------- 基础表单件 ---------------- */
@@ -180,7 +180,7 @@ export function TagInput({ values, onChange, placeholder }: { values: string[]; 
   );
 }
 
-function BulletsEdit({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+function BulletsEdit({ value, onChange, bulletStyle }: { value: string[]; onChange: (v: string[]) => void; bulletStyle?: "disc" | "diamond" | "arrow" | "ordered" }) {
   const update = (i: number, html: string) => onChange(value.map((b, idx) => (idx === i ? html : b)));
   const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
   const add = () => onChange([...value, ""]);
@@ -196,7 +196,17 @@ function BulletsEdit({ value, onChange }: { value: string[]; onChange: (v: strin
       <div className="flex flex-col gap-1.5">
         {value.map((b, i) => (
           <div key={i} className="flex items-start gap-1.5">
-            <span className="mt-[0.75rem] h-[5px] w-[5px] shrink-0 rotate-45" style={{ background: "#178a79" }} />
+            <span className="mt-[0.75rem] shrink-0 leading-none" style={{ color: "#178a79" }}>
+              {bulletStyle === "ordered" ? (
+                <span className="inline-block min-w-[1.2em] text-[11px] font-semibold tabular-nums">{i + 1}.</span>
+              ) : bulletStyle === "disc" ? (
+                <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+              ) : bulletStyle === "arrow" ? (
+                <IconArrowRight size={12} className="text-current" />
+              ) : (
+                <span className="block h-[5px] w-[5px] rotate-45 bg-current" />
+              )}
+            </span>
             <div className="min-w-0 flex-1">
               <RichTextEditor value={b} onChange={(html) => update(i, html)} placeholder="动词开头 + 内容 + 成果，选中可加粗" />
             </div>
@@ -380,7 +390,7 @@ export function BlockCard({
           )}
 
           {(isEntry || block.type === "custom_text") && (
-            <BulletsEdit value={block.bullets} onChange={(v) => patchBlock(resume.id, section.section_id, block.block_id, { bullets: v })} />
+            <BulletsEdit value={block.bullets} onChange={(v) => patchBlock(resume.id, section.section_id, block.block_id, { bullets: v })} bulletStyle={resume.theme.bullet_style ?? "diamond"} />
           )}
         </div>
       )}
