@@ -1,4 +1,4 @@
-import type { FontKey, DensityKey } from "../types";
+import type { FontKey, DensityKey, BulletStyleKey } from "../types";
 
 export function uid(prefix = "id"): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -158,13 +158,19 @@ export function fontStack(key?: FontKey): string {
 
 /** 三种密度对应的 CSS 变量（间距 + 行高 + 页边距），便于一页简历调节篇幅 */
 export const DENSITY_VARS: Record<DensityKey, Record<string, string>> = {
-  compact: { "--sec-gap": "0.6rem", "--entry-gap": "0.3rem", "--lh": "1.42", "--head-gap": "0.4rem", "--page-pad-x": "2.6rem", "--page-pad-y": "2.2rem" },
-  medium: { "--sec-gap": "1rem", "--entry-gap": "0.55rem", "--lh": "1.6", "--head-gap": "0.7rem", "--page-pad-x": "3rem", "--page-pad-y": "2.75rem" },
-  loose: { "--sec-gap": "1.5rem", "--entry-gap": "0.9rem", "--lh": "1.78", "--head-gap": "1rem", "--page-pad-x": "3.4rem", "--page-pad-y": "3.2rem" },
+  compact: { "--sec-gap": "0.6rem", "--entry-gap": "0.3rem", "--bullet-gap": "0.14rem", "--lh": "1.42", "--head-gap": "0.4rem", "--page-pad-x": "2.6rem", "--page-pad-y": "2.2rem" },
+  medium: { "--sec-gap": "1rem", "--entry-gap": "0.55rem", "--bullet-gap": "0.28rem", "--lh": "1.6", "--head-gap": "0.7rem", "--page-pad-x": "3rem", "--page-pad-y": "2.75rem" },
+  loose: { "--sec-gap": "1.5rem", "--entry-gap": "0.9rem", "--bullet-gap": "0.45rem", "--lh": "1.78", "--head-gap": "1rem", "--page-pad-x": "3.4rem", "--page-pad-y": "3.2rem" },
 };
 
 export function densityVars(key?: DensityKey): Record<string, string> {
   return DENSITY_VARS[key ?? "medium"];
+}
+
+/** 解析某模块实际生效的要点列表样式：模块级设置 > 全局默认 > 菱形。
+ *  编辑器与预览共用，保证「所见即所得」。 */
+export function resolveBulletStyle(sectionStyle?: BulletStyleKey, themeDefault?: BulletStyleKey): BulletStyleKey {
+  return sectionStyle ?? themeDefault ?? "diamond";
 }
 
 /* ---------------- 行内富文本（要点 / 描述） ---------------- */

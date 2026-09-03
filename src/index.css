@@ -155,6 +155,18 @@ body {
 .stagger > *:nth-child(7) { animation-delay: 0.32s; }
 .stagger > *:nth-child(8) { animation-delay: 0.37s; }
 
+/* ---------- 简历纸张排版细节 ---------- */
+.resume-sheet {
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+/* 要点/段落跨页时避免只剩一行（孤行/寡行） */
+.resume-sheet p,
+.resume-sheet li {
+  orphans: 2;
+  widows: 2;
+}
+
 /* ---------- print / PDF export ---------- */
 .print-only { display: none; }
 @media print {
@@ -162,4 +174,12 @@ body {
   html, body { background: #ffffff !important; }
   #app-root { display: none !important; }
   .print-only { display: block !important; }
+  /* 主题色块、日期胶囊、技能标签的背景色在打印/另存 PDF 时保留 */
+  .resume-sheet,
+  .resume-sheet * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* 模块标题不落在页尾（标题与内容不分离） */
+  .resume-sheet h2 { break-after: avoid; }
 }

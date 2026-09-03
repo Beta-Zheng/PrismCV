@@ -57,6 +57,8 @@ export interface Section {
   visible: boolean;
   order: number;
   blocks: Block[];
+  /** 该模块的要点列表样式（模块级自定义）；缺省时继承 theme.bullet_style */
+  bullet_style?: BulletStyleKey;
 }
 
 export interface ResumeData {
@@ -73,6 +75,17 @@ export type FontKey = "sans" | "serif" | "system" | "kai" | "mono" | "fangsong";
 export type DensityKey = "compact" | "medium" | "loose";
 export type HeaderLayoutKey = "row" | "stack";
 export type BulletStyleKey = "disc" | "diamond" | "arrow" | "ordered";
+
+/** 要点列表可选样式（编辑器与预览共用一份定义，避免两处不一致） */
+export const BULLET_STYLE_OPTIONS: Array<{ key: BulletStyleKey; label: string; sample: string }> = [
+  { key: "diamond", label: "菱形", sample: "◆" },
+  { key: "disc", label: "圆点", sample: "●" },
+  { key: "arrow", label: "箭头", sample: "→" },
+  { key: "ordered", label: "有序", sample: "1." },
+];
+
+/** 支持要点列表的模块类型（其余模块不展示要点样式开关） */
+export const BULLET_CAPABLE_SECTIONS: SectionType[] = ["work_experience", "project_experience", "education", "custom"];
 
 export interface Resume {
   id: string;

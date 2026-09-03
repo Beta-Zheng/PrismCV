@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AIAction, Block, JD, ModelProvider, Resume, ResumeData, RouteStrategy, Section, Suggestion } from "../types";
+import type { AIAction, Block, BulletStyleKey, JD, ModelProvider, Resume, ResumeData, RouteStrategy, Section, Suggestion } from "../types";
 import { nowISO, uid } from "./utils";
 import { buildResumeSummary, generateWithLLM, ruleSuggestion, selectProvider, defaultModels } from "./ai";
 
@@ -58,6 +58,8 @@ interface AppState {
   reorderSections: (resumeId: string, orderedIds: string[]) => void;
   toggleSection: (resumeId: string, sectionId: string) => void;
   renameSection: (resumeId: string, sectionId: string, title: string) => void;
+  /** 模块级要点样式；传 null 表示恢复为「跟随全局默认」 */
+  setSectionBulletStyle: (resumeId: string, sectionId: string, style: BulletStyleKey | null) => void;
   addSection: (resumeId: string, title: string) => void;
   deleteSection: (resumeId: string, sectionId: string) => void;
 
@@ -250,6 +252,20 @@ export const useApp = create<AppState>()(
 
       renameSection: (resumeId, sectionId, title) =>
         set((s) => withResume(s, resumeId, (r) => mapSection(r, sectionId, (sec) => ({ ...sec, title })))),
+
+      setSectionBulletStyle: (resumeId, sectionId, style) =>
+        set((s) =>
+          withResume(s, resumeId, (r) =>
+            mapSection(r, sectionId, (sec) => {
+              if (style === null) {
+                const next = { ...sec };
+                delete next.bullet_style;
+                return next;
+              }
+              return { ...sec, bullet_style: style };
+            })
+          )
+        ),
 
       addSection: (resumeId, title) =>
         set((s) =>

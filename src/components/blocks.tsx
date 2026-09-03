@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, type ReactNode, type RefObject } from "react";
-import type { AIAction, Block, Resume, Section } from "../types";
-import { ACTION_LABELS, SECTION_LABELS } from "../types";
-import { cx, fileToDataUrl, prepEditorHtml, stripHtml } from "../lib/utils";
+import type { AIAction, Block, BulletStyleKey, Resume, Section } from "../types";
+import { ACTION_LABELS, BULLET_CAPABLE_SECTIONS, BULLET_STYLE_OPTIONS, SECTION_LABELS } from "../types";
+import { cx, fileToDataUrl, prepEditorHtml, resolveBulletStyle, stripHtml } from "../lib/utils";
 import { useApp } from "../lib/store";
-import { IconArrowRight, IconChevronDown, IconChevronUp, IconEye, IconEyeOff, IconPlus, IconSpark, IconTrash, IconUpload, IconX } from "./icons";
+import { IconArrowRight, IconCheck, IconChevronDown, IconChevronUp, IconEye, IconEyeOff, IconPlus, IconSpark, IconTrash, IconUpload, IconX } from "./icons";
 import { Confirm } from "./ui";
 
 /* ---------------- 基础表单件 ---------------- */
@@ -180,7 +180,87 @@ export function TagInput({ values, onChange, placeholder }: { values: string[]; 
   );
 }
 
-function BulletsEdit({ value, onChange, bulletStyle }: { value: string[]; onChange: (v: string[]) => void; bulletStyle?: "disc" | "diamond" | "arrow" | "ordered" }) {
+/** 要点符号：编辑器与预览保持一致的视觉 */
+function BulletMarker({ style, index }: { style: BulletStyleKey; index: number }) {
+  if (style === "ordered") return <span className="inline-block min-w-[1.2em] text-[11px] font-semibold tabular-nums">{index + 1}.</span>;
+  if (style === "disc") return <span className="block h-[5px] w-[5px] rounded-full bg-current" />;
+  if (style === "arrow") return <IconArrowRight size={12} className="text-current" />;
+  return <span className="block h-[5px] w-[5px] rotate-45 bg-current" />;
+}
+
+/** 模块级要点列表样式选择器：与要点编辑器同处一行，改动即时作用于本模块所有条目 */
+function BulletStyleSelect({ value, onChange }: { value: BulletStyleKey; onChange: (v: BulletStyleKey) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  const cur = BULLET_STYLE_OPTIONS.find((o) => o.key === value) ?? BULLET_STYLE_OPTIONS[0];
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="本模块要点列表样式（作用于该模块全部条目）"
+        className={cx(
+          "inline-flex h-6 items-center gap-1 rounded-md border px-1.5 text-[11px] font-medium transition",
+          open ? "border-brand-400 bg-brand-50 text-brand-700" : "border-ink-200 bg-white text-ink-500 hover:border-brand-400 hover:text-brand-700"
+        )}
+      >
+        <span className="font-mono text-brand-600">{cur.sample}</span>
+        {cur.label}
+        <IconChevronDown size={10} className={cx("transition-transform duration-150", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div role="menu" className="anim-scale-in absolute right-0 top-7 z-30 w-44 overflow-hidden rounded-lg border border-ink-200 bg-white p-1 shadow-xl shadow-ink-950/15">
+          <p className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-400">本模块要点样式</p>
+          {BULLET_STYLE_OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => {
+                onChange(o.key);
+                setOpen(false);
+              }}
+              className={cx(
+                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition",
+                value === o.key ? "bg-brand-50 font-semibold text-brand-700" : "text-ink-600 hover:bg-paper-100"
+              )}
+            >
+              <span className="w-4 font-mono text-[11px]">{o.sample}</span>
+              {o.label}
+              {value === o.key && <IconCheck size={11} className="ml-auto" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BulletsEdit({
+  value,
+  onChange,
+  bulletStyle,
+  onBulletStyleChange,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  bulletStyle: BulletStyleKey;
+  onBulletStyleChange: (v: BulletStyleKey) => void;
+}) {
   const update = (i: number, html: string) => onChange(value.map((b, idx) => (idx === i ? html : b)));
   const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
   const add = () => onChange([...value, ""]);
@@ -192,20 +272,18 @@ function BulletsEdit({ value, onChange, bulletStyle }: { value: string[]; onChan
     onChange(next);
   };
   return (
-    <F label="要点（每条可加粗 / 斜体，支持上下移动）" className="col-span-2">
+    <div className="col-span-2 min-w-0">
+      <div className="mb-1 flex items-center gap-2">
+        <span className="field-label mb-0">要点（每条可加粗 / 斜体，支持上下移动）</span>
+        <div className="ml-auto">
+          <BulletStyleSelect value={bulletStyle} onChange={onBulletStyleChange} />
+        </div>
+      </div>
       <div className="flex flex-col gap-1.5">
         {value.map((b, i) => (
           <div key={i} className="flex items-start gap-1.5">
             <span className="mt-[0.75rem] shrink-0 leading-none" style={{ color: "#178a79" }}>
-              {bulletStyle === "ordered" ? (
-                <span className="inline-block min-w-[1.2em] text-[11px] font-semibold tabular-nums">{i + 1}.</span>
-              ) : bulletStyle === "disc" ? (
-                <span className="block h-[5px] w-[5px] rounded-full bg-current" />
-              ) : bulletStyle === "arrow" ? (
-                <IconArrowRight size={12} className="text-current" />
-              ) : (
-                <span className="block h-[5px] w-[5px] rotate-45 bg-current" />
-              )}
+              <BulletMarker style={bulletStyle} index={i} />
             </span>
             <div className="min-w-0 flex-1">
               <RichTextEditor value={b} onChange={(html) => update(i, html)} placeholder="动词开头 + 内容 + 成果，选中可加粗" />
@@ -227,7 +305,7 @@ function BulletsEdit({ value, onChange, bulletStyle }: { value: string[]; onChan
           <IconPlus size={12} /> 添加要点
         </button>
       </div>
-    </F>
+    </div>
   );
 }
 
@@ -299,6 +377,8 @@ export function BlockCard({
   index,
   total,
   onRequestAI,
+  bulletStyle,
+  onBulletStyleChange,
 }: {
   resume: Resume;
   section: Section;
@@ -306,6 +386,9 @@ export function BlockCard({
   index: number;
   total: number;
   onRequestAI: (sectionId: string, blockId: string, action: AIAction) => void;
+  /** 该模块解析后的要点样式（模块级设置 → 全局默认） */
+  bulletStyle: BulletStyleKey;
+  onBulletStyleChange: (v: BulletStyleKey) => void;
 }) {
   const { patchBlock, deleteBlock, moveBlock } = useApp();
   const [open, setOpen] = useState(true);
@@ -390,7 +473,12 @@ export function BlockCard({
           )}
 
           {(isEntry || block.type === "custom_text") && (
-            <BulletsEdit value={block.bullets} onChange={(v) => patchBlock(resume.id, section.section_id, block.block_id, { bullets: v })} bulletStyle={resume.theme.bullet_style ?? "diamond"} />
+            <BulletsEdit
+              value={block.bullets}
+              onChange={(v) => patchBlock(resume.id, section.section_id, block.block_id, { bullets: v })}
+              bulletStyle={bulletStyle}
+              onBulletStyleChange={onBulletStyleChange}
+            />
           )}
         </div>
       )}
@@ -424,10 +512,16 @@ export function SectionCard({
   onRequestAI: (sectionId: string, blockId: string, action: AIAction) => void;
   dragHandle?: ReactNode;
 }) {
-  const { addBlock, toggleSection, deleteSection, renameSection } = useApp();
+  const { addBlock, toggleSection, deleteSection, renameSection, setSectionBulletStyle } = useApp();
   const [confirmDel, setConfirmDel] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const visibleBlocks = section.blocks;
+  // 模块级要点样式：本模块设置优先，未设置则继承全局默认
+  const bulletStyle: BulletStyleKey = resolveBulletStyle(section.bullet_style, resume.theme.bullet_style);
+  const setBulletStyle = (v: BulletStyleKey) => setSectionBulletStyle(resume.id, section.section_id, v);
+  // 仅在支持要点的模块（工作/项目/教育/自定义）标题栏展示样式徽标，便于折叠时也能看清当前样式
+  const canBullet = BULLET_CAPABLE_SECTIONS.includes(section.type);
+  const curBullet = BULLET_STYLE_OPTIONS.find((o) => o.key === bulletStyle) ?? BULLET_STYLE_OPTIONS[0];
 
   return (
     <section className={cx("rounded-xl border bg-paper-25/80 transition-all duration-200", section.visible ? "border-ink-200 shadow-sm shadow-ink-950/5" : "border-dashed border-ink-200 opacity-70")}>
@@ -451,6 +545,11 @@ export function SectionCard({
           </h3>
         )}
         <span className="chip bg-paper-200 font-mono text-ink-400">{visibleBlocks.length} 条</span>
+        {canBullet && section.visible && (
+          <span className="chip bg-brand-50 text-brand-700 ring-1 ring-brand-100" title="本模块要点样式（在要点编辑区可切换）">
+            要点 <span className="font-mono">{curBullet.sample}</span>
+          </span>
+        )}
         <span className="chip hidden bg-paper-200 font-mono text-ink-300 sm:inline-flex">order {section.order}</span>
         <div className="ml-auto flex items-center gap-1">
           {section.type !== "basic_info" && (
@@ -483,7 +582,17 @@ export function SectionCard({
       ) : (
         <div className="flex flex-col gap-2 p-2.5">
           {visibleBlocks.map((b, i) => (
-            <BlockCard key={b.block_id} resume={resume} section={section} block={b} index={i} total={visibleBlocks.length} onRequestAI={onRequestAI} />
+            <BlockCard
+              key={b.block_id}
+              resume={resume}
+              section={section}
+              block={b}
+              index={i}
+              total={visibleBlocks.length}
+              onRequestAI={onRequestAI}
+              bulletStyle={bulletStyle}
+              onBulletStyleChange={setBulletStyle}
+            />
           ))}
           <button onClick={() => addBlock(resume.id, section.section_id)} className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-ink-200 py-2 text-[12px] font-medium text-ink-400 transition hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700">
             <IconPlus size={13} /> 新增条目
@@ -527,7 +636,7 @@ function ImageUploadField({
     <div className="block min-w-0">
       <span className="field-label">{label}</span>
       <div className="flex items-center gap-2">
-        <div className={cx("h-14 w-14 shrink-0 overflow-hidden border bg-paper-100", rounded)}>
+        <div className={cx("h-14 w-14 shrink-0 overflow-hidden bg-paper-100 ring-1 ring-ink-100", rounded)}>
           {url ? (
             <img src={url} alt={label} className="h-full w-full object-cover" />
           ) : (

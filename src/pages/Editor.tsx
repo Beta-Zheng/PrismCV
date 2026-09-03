@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -11,12 +11,24 @@ import { SectionCard } from "../components/blocks";
 import { AIPanel, JDPanel, OutlinePanel } from "../components/panels";
 import { A4Sheet } from "../components/template";
 import { Btn, Modal, ModalHeader, SaveIndicator } from "../components/ui";
-import { IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
+import { IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconLayout, IconPalette, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
 
 const THEME_COLORS = ["#0e7a6c", "#1d4ed8", "#9f1239", "#b45309", "#334155"];
 
-/** 工具栏下拉菜单：点击展开，点击外部 / 按 Esc 关闭 */
-function ToolbarMenu({ label, children }: { label: string; children: ReactNode }) {
+/** 工具栏下拉菜单：点击展开，点击外部 / 按 Esc 关闭。带图标 + 功能副标签 + 面板说明，让新用户一眼看懂这组设置管什么 */
+function ToolbarMenu({
+  label,
+  hint,
+  desc,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  hint: string;
+  desc: string;
+  icon: (p: { size?: number; className?: string; style?: CSSProperties }) => ReactNode;
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -41,19 +53,25 @@ function ToolbarMenu({ label, children }: { label: string; children: ReactNode }
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
+        title={desc}
         className={cx(
-          "flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[12px] font-semibold shadow-sm shadow-ink-950/5 ring-1 ring-ink-100 transition hover:ring-ink-200",
+          "flex items-center gap-2 rounded-lg bg-white px-2.5 py-1 text-left shadow-sm shadow-ink-950/5 ring-1 ring-ink-100 transition hover:ring-ink-200",
           open ? "text-brand-700 ring-brand-200" : "text-ink-600"
         )}
       >
-        {label}
-        <IconChevronDown size={13} className={cx("transition-transform duration-150", open && "rotate-180")} />
+        <Icon size={15} className={cx("shrink-0", open ? "text-brand-500" : "text-ink-400")} />
+        <span className="flex flex-col leading-tight">
+          <span className="text-[12px] font-semibold">{label}</span>
+          <span className="text-[10px] text-ink-400">{hint}</span>
+        </span>
+        <IconChevronDown size={13} className={cx("shrink-0 text-ink-300 transition-transform duration-150", open && "rotate-180")} />
       </button>
       {open && (
         <div
           role="menu"
           className="absolute left-0 top-[calc(100%+7px)] z-30 w-60 rounded-2xl border border-ink-200 bg-white p-3 shadow-xl shadow-ink-950/15"
         >
+          <p className="mb-2.5 border-b border-ink-100 pb-2 text-[11px] leading-snug text-ink-400">{desc}</p>
           {children}
         </div>
       )}
@@ -167,7 +185,7 @@ export default function Editor({ resumeId }: { resumeId: string }) {
         </div>
 
         {/* 外观下拉：主题色（仅非 ATS） + 字号 + 字体 */}
-        <ToolbarMenu label="外观">
+        <ToolbarMenu label="外观样式" hint="颜色 · 字体 · 字号" desc="调整整份简历的配色、正文字号与字体，对所有模块统一生效。" icon={IconPalette}>
           {resume.template_id !== "classic_ats" && (
             <MenuSection title="主题色">
               <div className="flex items-center gap-1.5 px-1">
@@ -246,8 +264,8 @@ export default function Editor({ resumeId }: { resumeId: string }) {
         </ToolbarMenu>
 
         {/* 布局下拉：密度 + 条头（条头仅非 ATS） */}
-        <ToolbarMenu label="布局">
-          <MenuSection title="密度（一页篇幅）">
+        <ToolbarMenu label="排版布局" hint="间距 · 疏密 · 一页篇幅" desc="调整整份简历的行距与模块间距：内容偏多选紧凑，偏少选宽松，让简历恰好一页。" icon={IconLayout}>
+          <MenuSection title="密度（内容多选紧凑）">
             <div className="flex gap-1 rounded-lg bg-paper-100 p-0.5">
               {([["compact", "紧凑"], ["medium", "中等"], ["loose", "宽松"]] as const).map(([k, label]) => (
                 <button
@@ -264,9 +282,9 @@ export default function Editor({ resumeId }: { resumeId: string }) {
             </div>
           </MenuSection>
           {resume.template_id !== "classic_ats" && (
-            <MenuSection title="条头布局">
+            <MenuSection title="条目标题排布">
               <div className="flex gap-1 rounded-lg bg-paper-100 p-0.5">
-                {([["row", "居左"], ["stack", "居上"]] as const).map(([k, label]) => (
+                {([["row", "标题 · 日期同行"], ["stack", "日期另起一行"]] as const).map(([k, label]) => (
                   <button
                     key={k}
                     onClick={() => app.setTheme(resumeId, { header_layout: k })}
@@ -284,27 +302,9 @@ export default function Editor({ resumeId }: { resumeId: string }) {
           )}
 
           <MenuSection title="要点列表">
-            <div className="grid grid-cols-2 gap-1">
-              {(
-                [
-                  ["ordered", "有序 1. 2. 3."],
-                  ["disc", "圆点 ●"],
-                  ["diamond", "菱形 ◆"],
-                  ["arrow", "箭头 →"],
-                ] as const
-              ).map(([k, label]) => (
-                <button
-                  key={k}
-                  onClick={() => app.setTheme(resumeId, { bullet_style: k })}
-                  className={cx(
-                    "rounded-md px-2 py-1 text-[11px] font-medium transition",
-                    (resume.theme.bullet_style ?? "diamond") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "bg-paper-100 text-ink-500 hover:bg-paper-200 hover:text-ink-800"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <p className="rounded-lg bg-paper-100 px-2 py-1.5 text-[11px] leading-snug text-ink-500">
+              已改为<strong className="font-semibold text-ink-700">按模块设置</strong>：在中间栏各模块的「要点」编辑区右上角切换（有序 / 圆点 / 菱形 / 箭头）。
+            </p>
           </MenuSection>
         </ToolbarMenu>
 

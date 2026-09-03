@@ -6,7 +6,7 @@
  * ------------------------------------------------------------------ */
 import type { ReactNode } from "react";
 import type { Block, Resume, Section, SectionType, HeaderLayoutKey, BulletStyleKey } from "../types";
-import { cx, fontStack, densityVars, isRichHtml, sanitizeInline } from "../lib/utils";
+import { cx, fontStack, densityVars, isRichHtml, resolveBulletStyle, sanitizeInline } from "../lib/utils";
 import { IconArrowRight, IconAward, IconBookOpen, IconBriefcase, IconFolderGit, IconGraduationCap } from "./icons";
 
 function orderedVisible(data: Resume["data"]): Section[] {
@@ -72,16 +72,16 @@ function BulletList({
   isATS?: boolean;
 }) {
   const renderItem = (bl: string, i: number) => (
-    <li key={i} className="flex gap-2 text-[0.92em]" style={{ color: isATS ? "#222" : undefined }}>
-      <span className="mt-[0.55em] shrink-0 leading-none">
+    <li key={i} className="flex gap-[0.6em] break-inside-avoid text-[0.92em]" style={{ color: isATS ? "#222" : "#2b3a36" }}>
+      <span className={cx("shrink-0 leading-none", bulletStyle === "ordered" ? "mt-[0.15em]" : "mt-[0.52em]")}>
         {bulletStyle === "ordered" ? (
-          <span className="font-mono text-[0.82em] font-semibold tabular-nums" style={{ color }}>
+          <span className="inline-block min-w-[1.35em] text-right font-mono text-[0.86em] font-bold tabular-nums" style={{ color: isATS ? "#111" : color }}>
             {i + 1}.
           </span>
         ) : bulletStyle === "disc" ? (
           <span className="block h-[5px] w-[5px] rounded-full" style={{ background: isATS ? "#111" : color }} />
         ) : bulletStyle === "arrow" ? (
-          <IconArrowRight size={12} style={{ color: isATS ? "#111" : color }} />
+          <IconArrowRight size={11} style={{ color: isATS ? "#111" : color }} />
         ) : (
           <span className="block h-[5px] w-[5px] rotate-45" style={{ background: isATS ? "#111" : color }} />
         )}
@@ -90,10 +90,11 @@ function BulletList({
     </li>
   );
 
+  const cls = "mt-[var(--entry-gap)] flex list-none flex-col gap-[var(--bullet-gap)] pl-0";
   if (bulletStyle === "ordered") {
-    return <ol className="mt-[var(--entry-gap)] flex list-none flex-col gap-0.5 pl-0">{bullets.map((bl, i) => renderItem(bl, i))}</ol>;
+    return <ol className={cls}>{bullets.map((bl, i) => renderItem(bl, i))}</ol>;
   }
-  return <ul className="mt-[var(--entry-gap)] flex list-none flex-col gap-0.5">{bullets.map((bl, i) => renderItem(bl, i))}</ul>;
+  return <ul className={cls}>{bullets.map((bl, i) => renderItem(bl, i))}</ul>;
 }
 
 function EntryBody({ block, style }: { block: Block; style: TStyle }) {
@@ -112,21 +113,25 @@ function EntryBody({ block, style }: { block: Block; style: TStyle }) {
           </p>
         ) : (
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-[1em] font-bold text-ink-900">
+            <p className="text-[1.02em] font-bold leading-snug text-ink-900">
               {renderRich(block.title)}
               {block.subtitle && (
                 <span className="font-normal text-ink-500">
-                  {isATS ? ` · ${renderRich(block.subtitle)}` : <span className="ml-1.5">{renderRich(block.subtitle)}</span>}
+                  <span className="mx-1.5 text-ink-300">·</span>
+                  {renderRich(block.subtitle)}
                 </span>
               )}
             </p>
             {dateRange(block) &&
               (date === "chip" ? (
-                <p className="shrink-0 rounded px-1.5 py-px font-mono text-[0.75em]" style={{ background: `${color}14`, color }}>
+                <p
+                  className="shrink-0 rounded-[3px] px-1.5 py-[0.1em] font-mono text-[0.76em] font-semibold"
+                  style={{ background: `${color}1f`, color, boxShadow: `inset 0 0 0 1px ${color}38` }}
+                >
                   {dateRange(block)}
                 </p>
               ) : (
-                <p className="shrink-0 text-[0.85em]" style={{ color: "#333" }}>
+                <p className="shrink-0 text-[0.85em] font-medium" style={{ color: "#222" }}>
                   {dateRange(block)}
                 </p>
               ))}
@@ -155,7 +160,11 @@ function EntryBody({ block, style }: { block: Block; style: TStyle }) {
         ) : (
           <div className="mt-[var(--entry-gap)] flex flex-wrap gap-1">
             {block.skills.map((sk) => (
-              <span key={sk} className="rounded px-1.5 py-px text-[0.78em] font-medium" style={{ background: `${color}14`, color }}>
+              <span
+                key={sk}
+                className="rounded-[3px] px-1.5 py-[0.12em] text-[0.78em] font-medium"
+                style={{ background: `${color}17`, color, boxShadow: `inset 0 0 0 1px ${color}30` }}
+              >
                 {sk}
               </span>
             ))}
@@ -170,22 +179,24 @@ function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
   if (section.type === "summary" && !blocks.some((b) => b.description)) return null;
   if (blocks.length === 0 && section.type !== "summary") return null;
   const { color, isATS } = style;
+  // 模块级要点样式优先，未设置时继承全局默认
+  const secStyle: TStyle = { ...style, bulletStyle: resolveBulletStyle(section.bullet_style, style.bulletStyle) };
   return (
-    <section className="mb-[var(--sec-gap)] break-inside-avoid">
+    <section className="mb-[var(--sec-gap)]">
       <h2
-        className={cx("mb-[var(--head-gap)] text-[1.02em] font-bold tracking-wide", !isATS && "flex items-center gap-2")}
+        className={cx("mb-[var(--head-gap)] text-[1.12em] font-bold", !isATS && "flex items-center gap-2")}
         style={
           isATS
-            ? { borderBottom: "1px solid #111", paddingBottom: "0.2em", color: "#111", textTransform: "uppercase", letterSpacing: "0.08em" }
-            : { color }
+            ? { borderBottom: "1.4px solid #111", paddingBottom: "0.22em", color: "#111", textTransform: "uppercase", letterSpacing: "0.08em", breakAfter: "avoid" }
+            : { color, letterSpacing: "0.02em", breakAfter: "avoid" }
         }
       >
-        {!isATS && <span className="inline-block h-[0.95em] w-[3.5px] rounded-full" style={{ background: color }} />}
+        {!isATS && <span className="inline-block h-[1em] w-[4px] rounded-full" style={{ background: color }} />}
         {section.title}
-        {!isATS && <span className="h-px flex-1" style={{ background: `${color}26` }} />}
+        {!isATS && <span className="h-[1.5px] flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${color}59, ${color}0f)` }} />}
       </h2>
       {blocks.map((b) => (
-        <EntryBody key={b.block_id} block={b} style={style} />
+        <EntryBody key={b.block_id} block={b} style={secStyle} />
       ))}
     </section>
   );
@@ -196,14 +207,16 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
   if (section.type === "summary" && !blocks.some((b) => b.description)) return null;
   if (blocks.length === 0 && section.type !== "summary") return null;
   const Icon = SECTION_ICON[section.type];
+  // 模块级要点样式优先，未设置时继承全局默认
+  const bs = resolveBulletStyle(section.bullet_style, bulletStyle);
   return (
-    <section className="mb-[var(--sec-gap)] break-inside-avoid">
-      <h2 className="mb-[var(--head-gap)] flex items-center gap-2 text-[1.05em] font-bold" style={{ color }}>
-        <span className="flex h-[1.1em] w-[1.1em] shrink-0 items-center justify-center rounded-full" style={{ background: color }}>
+    <section className="mb-[var(--sec-gap)]">
+      <h2 className="mb-[var(--head-gap)] flex items-center gap-2 text-[1.12em] font-bold" style={{ color, letterSpacing: "0.02em", breakAfter: "avoid" }}>
+        <span className="flex h-[1.15em] w-[1.15em] shrink-0 items-center justify-center rounded-full" style={{ background: color }}>
           {Icon ? <Icon size={12} className="text-white" /> : <span className="h-[0.35em] w-[0.35em] rounded-full bg-white" />}
         </span>
         {section.title}
-        <span className="h-px flex-1" style={{ background: `${color}33` }} />
+        <span className="h-[1.5px] flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${color}59, ${color}0f)` }} />
       </h2>
       {blocks.map((b) => (
         <div key={b.block_id} className="mb-[var(--entry-gap)] break-inside-avoid">
@@ -215,12 +228,21 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
               </p>
             ) : (
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-[1em] font-bold text-ink-900">
+                <p className="text-[1.02em] font-bold leading-snug text-ink-900">
                   {renderRich(b.title)}
-                  {b.subtitle && <span className="ml-1.5 font-normal text-ink-500">{renderRich(b.subtitle)}</span>}
+                  {b.subtitle && (
+                    <span className="font-normal text-ink-500">
+                      <span className="mx-1.5 text-ink-300">·</span>
+                      {renderRich(b.subtitle)}
+                    </span>
+                  )}
                 </p>
-                <div className="shrink-0 text-right text-[0.8em]" style={{ color: "#555" }}>
-                  {dateRange(b) && <span>{dateRange(b)}</span>}
+                <div className="shrink-0 text-right text-[0.8em] font-medium" style={{ color: "#333" }}>
+                  {dateRange(b) && (
+                    <span className="rounded-[3px] px-1.5 py-[0.1em] font-mono" style={{ background: `${color}1a`, color, boxShadow: `inset 0 0 0 1px ${color}33` }}>
+                      {dateRange(b)}
+                    </span>
+                  )}
                   {b.location && <span className="ml-2 text-ink-400">{b.location}</span>}
                 </div>
               </div>
@@ -234,10 +256,20 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
           {b.description && (
             <p className="mt-[var(--entry-gap)] whitespace-pre-line text-[0.92em] leading-relaxed text-ink-700">{renderRich(b.description)}</p>
           )}
-          {b.bullets.filter(Boolean).length > 0 && (
-            <BulletList bullets={b.bullets.filter(Boolean)} bulletStyle={bulletStyle} color={color} />
+          {b.bullets.filter(Boolean).length > 0 && <BulletList bullets={b.bullets.filter(Boolean)} bulletStyle={bs} color={color} />}
+          {b.skills.length > 0 && (
+            <div className="mt-[var(--entry-gap)] flex flex-wrap gap-1">
+              {b.skills.map((sk) => (
+                <span
+                  key={sk}
+                  className="rounded-[3px] px-1.5 py-[0.12em] text-[0.78em] font-medium"
+                  style={{ background: `${color}17`, color, boxShadow: `inset 0 0 0 1px ${color}30` }}
+                >
+                  {sk}
+                </span>
+              ))}
+            </div>
           )}
-          {b.skills.length > 0 && <p className="mt-[var(--entry-gap)] text-[0.9em] text-ink-700">{b.skills.join(" · ")}</p>}
         </div>
       ))}
     </section>
@@ -268,7 +300,7 @@ function AcademicPhotoSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="font-[700] leading-tight" style={{ fontSize: "2.2em", color: "#101817" }}>
+            <h1 className="font-[700] leading-tight" style={{ fontSize: "2.2em", color: "#101817", letterSpacing: "-0.01em" }}>
               {info.name || "未命名"}
             </h1>
             {info.title && (
@@ -346,7 +378,7 @@ export function ResumeSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
         <header className="mb-[var(--sec-gap)]">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <h1 className="font-[700] leading-tight" style={{ fontSize: "2.3em", color: "#101817" }}>
+              <h1 className="font-[700] leading-tight" style={{ fontSize: "2.3em", color: "#101817", letterSpacing: "-0.01em" }}>
                 {info.name || "未命名"}
               </h1>
               {info.title && (
@@ -355,11 +387,21 @@ export function ResumeSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
                 </p>
               )}
             </div>
-            <div className="mb-1 h-10 w-10 shrink-0 rounded-md" style={{ background: color, opacity: 0.9 }}>
-              <div className="flex h-full items-center justify-center font-bold text-white" style={{ fontSize: "1.3em" }}>
-                {(info.name || "?").slice(0, 1)}
+            {/* 已上传头像时直接使用头像，否则用姓名首字母色块，保持右上角视觉锚点 */}
+            {resume.data.avatar_url ? (
+              <div className="mb-1 h-[58px] w-[42px] shrink-0 overflow-hidden rounded-md bg-paper-100">
+                <img src={resume.data.avatar_url} alt="头像" className="h-full w-full object-cover" />
               </div>
-            </div>
+            ) : (
+              <div
+                className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                style={{ background: `linear-gradient(135deg, ${color}, ${color}bf)` }}
+              >
+                <span className="font-bold text-white" style={{ fontSize: "1.35em" }}>
+                  {(info.name || "?").slice(0, 1)}
+                </span>
+              </div>
+            )}
           </div>
           {contacts.length > 0 && (
             <div className="mt-[var(--head-gap)] flex flex-wrap items-center gap-y-1 text-[0.85em] text-ink-500">

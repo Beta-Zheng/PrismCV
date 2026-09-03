@@ -258,3 +258,34 @@ export const IconBookOpen = (p: P) =>
       <path d="M21 4h-9a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h9z" />
     </>
   ));
+
+/** 外观设置：调色板 */
+export const IconPalette = (p: P) =>
+  base(p, (
+    <>
+      <path d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2a2 2 0 0 0-2 2c0 1 .5 1 .5 2s-.7 2-2.5 2z" />
+      <circle cx="7.5" cy="11.5" r="1" />
+      <circle cx="10.5" cy="7.5" r="1" />
+      <circle cx="15" cy="7.5" r="1" />
+    </>
+  ));
+
+/** 外观设置：文字样式 */
+export const IconType = (p: P) =>
+  base(p, (
+    <>
+      <path d="M4 6V4h16v2" />
+      <path d="M12 4v16" />
+      <path d="M9 20h6" />
+    </>
+  ));
+
+/** 布局设置：行列排布 */
+export const IconLayout = (p: P) =>
+  base(p, (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M9 21V9" />
+    </>
+  ));
