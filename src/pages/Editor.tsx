@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -11,9 +11,65 @@ import { SectionCard } from "../components/blocks";
 import { AIPanel, JDPanel, OutlinePanel } from "../components/panels";
 import { A4Sheet } from "../components/template";
 import { Btn, Modal, ModalHeader, SaveIndicator } from "../components/ui";
-import { IconCheck, IconChevronLeft, IconGrip, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
+import { IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
 
 const THEME_COLORS = ["#0e7a6c", "#1d4ed8", "#9f1239", "#b45309", "#334155"];
+
+/** 工具栏下拉菜单：点击展开，点击外部 / 按 Esc 关闭 */
+function ToolbarMenu({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={cx(
+          "flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[12px] font-semibold shadow-sm shadow-ink-950/5 ring-1 ring-ink-100 transition hover:ring-ink-200",
+          open ? "text-brand-700 ring-brand-200" : "text-ink-600"
+        )}
+      >
+        {label}
+        <IconChevronDown size={13} className={cx("transition-transform duration-150", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute left-0 top-[calc(100%+7px)] z-30 w-60 rounded-2xl border border-ink-200 bg-white p-3 shadow-xl shadow-ink-950/15"
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 下拉菜单内的分组小标题 + 内容 */
+function MenuSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="mb-3 last:mb-0">
+      <p className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-wider text-ink-400">{title}</p>
+      {children}
+    </div>
+  );
+}
 
 function SortableSection({ resume, section, onRequestAI }: { resume: Resume; section: Section; onRequestAI: (s: string, b: string, a: AIAction) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.section_id });
@@ -110,115 +166,112 @@ export default function Editor({ resumeId }: { resumeId: string }) {
           </div>
         </div>
 
-        {/* 外观组：颜色（仅非 ATS） + 字号 + 字体 */}
-        <div className="flex items-center gap-2 rounded-lg bg-white px-2 py-1.5 shadow-sm shadow-ink-950/5 ring-1 ring-ink-100">
-          <span className="hidden pr-1 text-[10px] font-bold uppercase tracking-wider text-ink-300 lg:inline">外观</span>
-
-          {/* 主题色 */}
+        {/* 外观下拉：主题色（仅非 ATS） + 字号 + 字体 */}
+        <ToolbarMenu label="外观">
           {resume.template_id !== "classic_ats" && (
-            <div className="flex items-center gap-1">
-              {THEME_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => app.setTheme(resumeId, { primary_color: c })}
-                  className={cx(
-                    "relative flex h-[22px] w-[22px] items-center justify-center rounded-full transition hover:scale-110",
-                    resume.theme.primary_color === c ? "ring-2 ring-offset-1 ring-ink-900" : "ring-1 ring-ink-200 hover:ring-ink-400"
-                  )}
-                  style={{ background: c }}
-                  aria-label={`主题色 ${c}`}
+            <MenuSection title="主题色">
+              <div className="flex items-center gap-1.5 px-1">
+                {THEME_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => app.setTheme(resumeId, { primary_color: c })}
+                    className={cx(
+                      "relative flex h-[22px] w-[22px] items-center justify-center rounded-full transition hover:scale-110",
+                      resume.theme.primary_color === c ? "ring-2 ring-offset-1 ring-ink-900" : "ring-1 ring-ink-200 hover:ring-ink-400"
+                    )}
+                    style={{ background: c }}
+                    aria-label={`主题色 ${c}`}
+                  >
+                    {resume.theme.primary_color === c && <IconCheck size={12} className="text-white" />}
+                  </button>
+                ))}
+                <label
+                  className="relative flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full ring-1 ring-ink-200 transition hover:ring-ink-400"
+                  title="自定义主题色"
                 >
-                  {resume.theme.primary_color === c && <IconCheck size={12} className="text-white" />}
-                </button>
-              ))}
-              <label
-                className="relative flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full ring-1 ring-ink-200 transition hover:ring-ink-400"
-                title="自定义主题色"
-              >
-                <input
-                  type="color"
-                  value={resume.theme.primary_color}
-                  onChange={(e) => app.setTheme(resumeId, { primary_color: e.target.value })}
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                  aria-label="自定义主题色"
-                />
-                <div className="h-3 w-3 rounded-full bg-gradient-to-br from-red-400 via-green-400 to-blue-400" />
-              </label>
-            </div>
+                  <input
+                    type="color"
+                    value={resume.theme.primary_color}
+                    onChange={(e) => app.setTheme(resumeId, { primary_color: e.target.value })}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    aria-label="自定义主题色"
+                  />
+                  <div className="h-3 w-3 rounded-full bg-gradient-to-br from-red-400 via-green-400 to-blue-400" />
+                </label>
+              </div>
+            </MenuSection>
           )}
 
-          {resume.template_id !== "classic_ats" && <div className="hidden h-4 w-px bg-ink-200 sm:block" />}
+          <MenuSection title="字号">
+            <div className="flex gap-1 rounded-lg bg-paper-100 p-0.5">
+              {[13, 14, 15].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => app.setTheme(resumeId, { font_size: n })}
+                  className={cx(
+                    "flex-1 rounded-md px-2 py-1 font-mono text-[11px] font-bold transition",
+                    resume.theme.font_size === n ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </MenuSection>
 
-          {/* 字号 */}
-          <div className="flex rounded-md bg-paper-100 p-0.5">
-            {[13, 14, 15].map((n) => (
-              <button
-                key={n}
-                onClick={() => app.setTheme(resumeId, { font_size: n })}
-                className={cx(
-                  "rounded-md px-2 py-0.5 font-mono text-[11px] font-bold transition",
-                  resume.theme.font_size === n ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
-                )}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
+          <MenuSection title="字体">
+            <div className="grid grid-cols-3 gap-1">
+              {([
+                ["sans", "黑体"],
+                ["serif", "宋体"],
+                ["system", "系统"],
+                ["kai", "楷体"],
+                ["mono", "等宽"],
+                ["fangsong", "仿宋"],
+              ] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  onClick={() => app.setTheme(resumeId, { font_family: k })}
+                  className={cx(
+                    "rounded-md px-1.5 py-1 text-[11px] font-medium transition",
+                    (resume.theme.font_family ?? "sans") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "bg-paper-100 text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                  )}
+                  title={`字体：${label}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </MenuSection>
+        </ToolbarMenu>
 
-          <div className="hidden h-4 w-px bg-ink-200 sm:block" />
-
-          {/* 字体 */}
-          <div className="flex rounded-md bg-paper-100 p-0.5">
-            {([
-              ["sans", "黑体"],
-              ["serif", "宋体"],
-              ["system", "系统"],
-              ["kai", "楷体"],
-              ["mono", "等宽"],
-              ["fangsong", "仿宋"],
-            ] as const).map(([k, label]) => (
-              <button
-                key={k}
-                onClick={() => app.setTheme(resumeId, { font_family: k })}
-                className={cx(
-                  "rounded-md px-1.5 py-0.5 text-[11px] font-medium transition",
-                  (resume.theme.font_family ?? "sans") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
-                )}
-                title={`字体：${label}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 布局组：密度 + 条头（条头仅非 ATS） */}
-        <div className="flex items-center gap-1.5 rounded-lg bg-white px-2 py-1.5 shadow-sm shadow-ink-950/5 ring-1 ring-ink-100">
-          <span className="hidden pr-1 text-[10px] font-bold uppercase tracking-wider text-ink-300 lg:inline">布局</span>
-          <div className="flex rounded-md bg-paper-100 p-0.5">
-            {([["compact", "紧凑"], ["medium", "中等"], ["loose", "宽松"]] as const).map(([k, label]) => (
-              <button
-                key={k}
-                onClick={() => app.setTheme(resumeId, { density: k })}
-                className={cx(
-                  "rounded-md px-2 py-0.5 text-[11px] font-medium transition",
-                  (resume.theme.density ?? "medium") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        {/* 布局下拉：密度 + 条头（条头仅非 ATS） */}
+        <ToolbarMenu label="布局">
+          <MenuSection title="密度（一页篇幅）">
+            <div className="flex gap-1 rounded-lg bg-paper-100 p-0.5">
+              {([["compact", "紧凑"], ["medium", "中等"], ["loose", "宽松"]] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  onClick={() => app.setTheme(resumeId, { density: k })}
+                  className={cx(
+                    "flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition",
+                    (resume.theme.density ?? "medium") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </MenuSection>
           {resume.template_id !== "classic_ats" && (
-            <>
-              <div className="hidden h-4 w-px bg-ink-200 sm:block" />
-              <div className="flex rounded-md bg-paper-100 p-0.5">
+            <MenuSection title="条头布局">
+              <div className="flex gap-1 rounded-lg bg-paper-100 p-0.5">
                 {([["row", "居左"], ["stack", "居上"]] as const).map(([k, label]) => (
                   <button
                     key={k}
                     onClick={() => app.setTheme(resumeId, { header_layout: k })}
                     className={cx(
-                      "rounded-md px-2 py-0.5 text-[11px] font-medium transition",
+                      "flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition",
                       (resume.theme.header_layout ?? "row") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
                     )}
                     title={k === "row" ? "标题居左，日期居右" : "标题居上，日期与地点居下"}
@@ -227,9 +280,9 @@ export default function Editor({ resumeId }: { resumeId: string }) {
                   </button>
                 ))}
               </div>
-            </>
+            </MenuSection>
           )}
-        </div>
+        </ToolbarMenu>
 
         {/* 操作组 */}
         <div className="ml-auto flex items-center gap-2">
