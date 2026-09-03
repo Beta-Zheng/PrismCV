@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { Resume, SourceKind } from "../types";
+import { TEMPLATES } from "../types";
 import { ACCEPT_EXTS, MAX_FILE_SIZE, extractFileText, structureResume, emptyResume, type SupportedExt } from "../lib/parser";
 import { buildSampleResume } from "../lib/samples";
 import { formatBytes, cx, timeAgo } from "../lib/utils";
@@ -265,7 +266,7 @@ export default function Home() {
                     </span>
                     <span className="mt-0.5 flex items-center gap-2 font-mono text-[10.5px] text-ink-300">
                       <span>{timeAgo(r.updated_at)}更新</span>
-                      <span className="chip bg-paper-200 py-0 text-[10px]">{r.template_id === "classic_ats" ? "经典 ATS" : "现代单栏"}</span>
+                      <span className="chip bg-paper-200 py-0 text-[10px]">{TEMPLATES.find((t) => t.template_id === r.template_id)?.name ?? "自定义"}</span>
                       <span className="chip bg-paper-200 py-0 text-[10px]">{r.data.sections.filter((s) => s.visible).length} 个模块</span>
                       <span className="chip bg-paper-200 py-0 text-[10px]">来源 {r.data.metadata.source}</span>
                     </span>
