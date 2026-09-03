@@ -68,6 +68,24 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
+/** 将图片文件读取为 base64 Data URL；超过 maxBytes 时拒绝 */
+export function fileToDataUrl(file: File, maxBytes = 2 * 1024 * 1024): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("请选择图片文件"));
+      return;
+    }
+    if (file.size > maxBytes) {
+      reject(new Error(`图片大小不能超过 ${formatBytes(maxBytes)}`));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("读取图片失败"));
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ---------------- 行级 LCS Diff（AI 建议对比用） ---------------- */
 
 export type DiffOp = { kind: "same" | "add" | "del"; text: string };

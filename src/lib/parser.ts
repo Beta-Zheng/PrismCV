@@ -528,7 +528,13 @@ export function structureResume(rawText: string, source: ResumeData["metadata"][
   const unclaimed = cur.type === "head" ? [] : [];
   void unclaimed;
 
-  return { basic_info: basic, sections, metadata: { source, source_name: sourceName, created_at: nowISO() } };
+  return {
+    basic_info: basic,
+    sections,
+    metadata: { source, source_name: sourceName, created_at: nowISO() },
+    avatar_url: "",
+    school_badge_url: "",
+  };
 }
 
 /** 空简历工厂 */

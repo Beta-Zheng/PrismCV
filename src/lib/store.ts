@@ -47,6 +47,8 @@ interface AppState {
   renameResume: (id: string, title: string) => void;
   setTemplate: (id: string, templateId: string) => void;
   setTheme: (id: string, patch: Partial<Resume["theme"]>) => void;
+  setAvatar: (id: string, url: string | null) => void;
+  setSchoolBadge: (id: string, url: string | null) => void;
 
   patchBasic: (resumeId: string, patch: Partial<ResumeData["basic_info"]>) => void;
   patchBlock: (resumeId: string, sectionId: string, blockId: string, patch: Partial<Block>) => void;
@@ -183,6 +185,8 @@ export const useApp = create<AppState>()(
       renameResume: (id, title) => set((s) => withResume(s, id, (r) => ({ ...r, title }))),
       setTemplate: (id, templateId) => set((s) => withResume(s, id, (r) => ({ ...r, template_id: templateId }))),
       setTheme: (id, patch) => set((s) => withResume(s, id, (r) => ({ ...r, theme: { ...r.theme, ...patch } }))),
+      setAvatar: (id, url) => set((s) => withResume(s, id, (r) => ({ ...r, data: { ...r.data, avatar_url: url ?? "" } }))),
+      setSchoolBadge: (id, url) => set((s) => withResume(s, id, (r) => ({ ...r, data: { ...r.data, school_badge_url: url ?? "" } }))),
 
       patchBasic: (resumeId, patch) =>
         set((s) => withResume(s, resumeId, (r) => ({ ...r, data: { ...r.data, basic_info: { ...r.data.basic_info, ...patch } } }))),

@@ -63,6 +63,10 @@ export interface ResumeData {
   basic_info: BasicInfo;
   sections: Section[]; // 渲染按 order 升序，再过滤 visible=false
   metadata: { source: SourceKind; source_name?: string; created_at: string };
+  /** 个人头像（base64 或外链），仅部分模板展示 */
+  avatar_url?: string;
+  /** 学校/机构徽标（base64 或外链），仅部分模板展示 */
+  school_badge_url?: string;
 }
 
 export interface Resume {
@@ -166,7 +170,7 @@ export interface Suggestion {
 export interface TemplateConfig {
   template_id: string;
   name: string;
-  layout: "single_column" | "ats";
+  layout: "single_column" | "ats" | "photo_header";
   description: string;
 }
 
@@ -182,6 +186,12 @@ export const TEMPLATES: TemplateConfig[] = [
     name: "经典 ATS",
     layout: "ats",
     description: "纯黑白、标准标题、无表格，过筛率优先",
+  },
+  {
+    template_id: "academic_photo",
+    name: "学术双栏",
+    layout: "photo_header",
+    description: "头像 + 校徽头区 + 图标模块标题，适合应届/学术简历",
   },
 ];
 

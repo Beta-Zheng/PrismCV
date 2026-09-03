@@ -1,9 +1,9 @@
 import { useState, useRef, type ReactNode, type RefObject } from "react";
 import type { AIAction, Block, Resume, Section } from "../types";
 import { ACTION_LABELS, SECTION_LABELS } from "../types";
-import { cx } from "../lib/utils";
+import { cx, fileToDataUrl } from "../lib/utils";
 import { useApp } from "../lib/store";
-import { IconChevronDown, IconChevronUp, IconEye, IconEyeOff, IconPlus, IconSpark, IconTrash, IconX } from "./icons";
+import { IconChevronDown, IconChevronUp, IconEye, IconEyeOff, IconPlus, IconSpark, IconTrash, IconUpload, IconX } from "./icons";
 import { Confirm } from "./ui";
 
 /* ---------------- 基础表单件 ---------------- */
@@ -411,8 +411,51 @@ export function SectionCard({
   );
 }
 
+function ImageUploadField({
+  label,
+  url,
+  onFile,
+  onClear,
+  rounded,
+  placeholder,
+}: {
+  label: string;
+  url?: string;
+  onFile: (file: File) => void;
+  onClear: () => void;
+  rounded: string;
+  placeholder: string;
+}) {
+  const id = `img-${label}`;
+  return (
+    <div className="block min-w-0">
+      <span className="field-label">{label}</span>
+      <div className="flex items-center gap-2">
+        <div className={cx("h-14 w-14 shrink-0 overflow-hidden border bg-paper-100", rounded)}>
+          {url ? (
+            <img src={url} alt={label} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[1.1em] font-bold text-ink-300">{placeholder}</div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor={id} className="inline-flex cursor-pointer items-center gap-1 text-[12px] font-medium text-brand-600 hover:text-brand-700">
+            <IconUpload size={12} /> 上传
+          </label>
+          <input id={id} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+          {url && (
+            <button type="button" onClick={onClear} className="text-left text-[12px] text-danger-600 hover:text-danger-700">
+              清除
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BasicInfoEditor({ resume }: { resume: Resume }) {
-  const { patchBasic } = useApp();
+  const { patchBasic, setAvatar, setSchoolBadge, toast } = useApp();
   const b = resume.data.basic_info;
   const fields: Array<{ key: keyof typeof b; label: string; ph: string }> = [
     { key: "name", label: "姓名", ph: "张三" },
@@ -422,11 +465,39 @@ function BasicInfoEditor({ resume }: { resume: Resume }) {
     { key: "location", label: "所在城市", ph: "上海" },
     { key: "website", label: "主页 / GitHub", ph: "github.com/you" },
   ];
+
+  const handleImage = async (file: File | undefined, setter: (url: string | null) => void, label: string) => {
+    if (!file) return;
+    try {
+      const url = await fileToDataUrl(file);
+      setter(url);
+      toast("ok", `${label}已更新`);
+    } catch (e) {
+      toast("err", e instanceof Error ? e.message : "上传失败");
+    }
+  };
+
   return (
     <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 px-3 py-3">
       {fields.map((f) => (
         <RichField key={f.key} label={f.label} value={b[f.key]} placeholder={f.ph} onChange={(v) => patchBasic(resume.id, { [f.key]: v })} />
       ))}
+      <ImageUploadField
+        label="头像"
+        url={resume.data.avatar_url}
+        onFile={(file) => handleImage(file, (url) => setAvatar(resume.id, url), "头像")}
+        onClear={() => setAvatar(resume.id, null)}
+        rounded="rounded-lg"
+        placeholder="?"
+      />
+      <ImageUploadField
+        label="校徽"
+        url={resume.data.school_badge_url}
+        onFile={(file) => handleImage(file, (url) => setSchoolBadge(resume.id, url), "校徽")}
+        onClear={() => setSchoolBadge(resume.id, null)}
+        rounded="rounded-full"
+        placeholder="校"
+      />
     </div>
   );
 }

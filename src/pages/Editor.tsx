@@ -104,6 +104,14 @@ export default function Editor({ resumeId }: { resumeId: string }) {
             {THEME_COLORS.map((c) => (
               <button key={c} onClick={() => app.setTheme(resumeId, { primary_color: c })} className={cx("h-5 w-5 rounded-full border-2 transition-transform hover:scale-110", resume.theme.primary_color === c ? "border-ink-900 scale-110" : "border-white shadow")} style={{ background: c }} aria-label={`主题色 ${c}`} />
             ))}
+            <input
+              type="color"
+              value={resume.theme.primary_color}
+              onChange={(e) => app.setTheme(resumeId, { primary_color: e.target.value })}
+              className="h-5 w-5 cursor-pointer overflow-hidden rounded-full border-2 border-white p-0 shadow"
+              title="自定义主题色"
+              aria-label="自定义主题色"
+            />
           </div>
         )}
 

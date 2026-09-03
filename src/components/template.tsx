@@ -143,7 +143,118 @@ function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
   );
 }
 
+function AcademicSectionBlock({ section, color }: { section: Section; color: string }) {
+  const blocks = visibleBlocks(section);
+  if (section.type === "summary" && !blocks.some((b) => b.description)) return null;
+  if (blocks.length === 0 && section.type !== "summary") return null;
+  return (
+    <section className="mb-4 break-inside-avoid">
+      <h2 className="mb-2.5 flex items-center gap-2 text-[1.05em] font-bold" style={{ color }}>
+        <span className="flex h-[1.1em] w-[1.1em] items-center justify-center rounded-full" style={{ background: color }}>
+          <span className="h-[0.35em] w-[0.35em] rounded-full bg-white" />
+        </span>
+        {section.title}
+        <span className="h-px flex-1" style={{ background: `${color}33` }} />
+      </h2>
+      {blocks.map((b) => (
+        <div key={b.block_id} className="mb-2.5 break-inside-avoid">
+          {(b.title || b.subtitle) && (
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[1em] font-bold text-ink-900">
+                {renderRich(b.title)}
+                {b.subtitle && <span className="ml-1.5 font-normal text-ink-500">{renderRich(b.subtitle)}</span>}
+              </p>
+              <div className="shrink-0 text-right text-[0.8em]" style={{ color: "#555" }}>
+                {dateRange(b) && <span>{dateRange(b)}</span>}
+                {b.location && <span className="ml-2 text-ink-400">{b.location}</span>}
+              </div>
+            </div>
+          )}
+          {b.description && (
+            <p className="mt-1 whitespace-pre-line text-[0.92em] leading-relaxed text-ink-700">{renderRich(b.description)}</p>
+          )}
+          {b.bullets.filter(Boolean).length > 0 && (
+            <ul className="mt-1 list-disc pl-5">
+              {b.bullets.filter(Boolean).map((bl, i) => (
+                <li key={i} className="text-[0.92em] text-ink-700">{renderRich(bl)}</li>
+              ))}
+            </ul>
+          )}
+          {b.skills.length > 0 && <p className="mt-1 text-[0.9em] text-ink-700">{b.skills.join(" · ")}</p>}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function AcademicPhotoSheet({ resume, forPrint }: { resume: Resume; forPrint?: boolean }) {
+  const color = resume.theme.primary_color;
+  const fs = resume.theme.font_size;
+  const info = resume.data.basic_info;
+  const contacts = [info.email, info.phone, info.location, info.website].filter(Boolean);
+  const basicSection = resume.data.sections.find((s) => s.type === "basic_info");
+  const basicVisible = basicSection?.visible ?? true;
+  const bodySections = orderedVisible(resume.data).filter((s) => s.type !== "basic_info");
+
+  return (
+    <div
+      className={cx("resume-sheet bg-white", !forPrint && "shadow-xl shadow-ink-950/15")}
+      style={{ fontSize: `${fs}px`, lineHeight: 1.6, fontFamily: '"Noto Sans SC", sans-serif', color: "#222" }}
+    >
+      {basicVisible && (
+        <header className="mb-5 flex items-center gap-5 border-b pb-5" style={{ borderColor: `${color}33` }}>
+          <div className="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-lg border bg-paper-100">
+            {resume.data.avatar_url ? (
+              <img src={resume.data.avatar_url} alt="头像" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-[2em] font-bold text-ink-300">
+                {(info.name || "?").slice(0, 1)}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1
+              className="font-[700] leading-tight"
+              style={{ fontFamily: '"Noto Serif SC", serif', fontSize: "2.2em", color: "#101817" }}
+            >
+              {info.name || "未命名"}
+            </h1>
+            {info.title && (
+              <p className="mt-1 font-medium" style={{ color }}>
+                {info.title}
+              </p>
+            )}
+            {contacts.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.85em] text-ink-500">
+                {contacts.map((c) => (
+                  <span key={c}>{c}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-full border bg-white">
+            {resume.data.school_badge_url ? (
+              <img src={resume.data.school_badge_url} alt="校徽" className="h-full w-full object-contain p-1" />
+            ) : (
+              <span className="text-center text-[10px] leading-tight text-ink-300">校徽</span>
+            )}
+          </div>
+        </header>
+      )}
+      <main>
+        {bodySections.map((s) => (
+          <AcademicSectionBlock key={s.section_id} section={s} color={color} />
+        ))}
+      </main>
+    </div>
+  );
+}
+
 export function ResumeSheet({ resume, forPrint }: { resume: Resume; forPrint?: boolean }) {
+  if (resume.template_id === "academic_photo") {
+    return <AcademicPhotoSheet resume={resume} forPrint={forPrint} />;
+  }
+
   const isATS = resume.template_id === "classic_ats";
   const color = isATS ? "#111111" : resume.theme.primary_color;
   const fs = resume.theme.font_size;
