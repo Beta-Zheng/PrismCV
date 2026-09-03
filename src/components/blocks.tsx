@@ -1,7 +1,7 @@
-import { useState, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useState, useRef, type ReactNode, type RefObject } from "react";
 import type { AIAction, Block, Resume, Section } from "../types";
 import { ACTION_LABELS, SECTION_LABELS } from "../types";
-import { cx, fileToDataUrl } from "../lib/utils";
+import { cx, fileToDataUrl, prepEditorHtml, stripHtml } from "../lib/utils";
 import { useApp } from "../lib/store";
 import { IconChevronDown, IconChevronUp, IconEye, IconEyeOff, IconPlus, IconSpark, IconTrash, IconUpload, IconX } from "./icons";
 import { Confirm } from "./ui";
@@ -84,6 +84,62 @@ function RichField({
   );
 }
 
+/** 轻量行内富文本编辑器：contentEditable + 加粗/斜体工具栏，输出消毒后的 HTML。
+ *  与预览端 renderRich 配合，实现「要点/描述统一为富文本、可自定义加粗」。 */
+function RichTextEditor({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const lastEmitted = useRef(value);
+  useEffect(() => {
+    const el = ref.current;
+    if (el && value !== lastEmitted.current) {
+      el.innerHTML = prepEditorHtml(value);
+      lastEmitted.current = value;
+    }
+  }, [value]);
+  const emit = () => {
+    const el = ref.current;
+    if (!el) return;
+    const html = el.innerHTML;
+    lastEmitted.current = html;
+    onChange(html);
+  };
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-0.5 border-b border-ink-200 bg-paper-50 px-1.5 py-1">
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => document.execCommand("bold")}
+          className="flex h-6 w-6 items-center justify-center rounded text-[13px] font-bold text-ink-500 transition hover:bg-brand-100 hover:text-brand-700"
+          title="选中文字后加粗"
+          aria-label="加粗"
+        >
+          B
+        </button>
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => document.execCommand("italic")}
+          className="flex h-6 w-6 items-center justify-center rounded text-[13px] italic text-ink-500 transition hover:bg-brand-100 hover:text-brand-700"
+          title="选中文字后斜体"
+          aria-label="斜体"
+        >
+          I
+        </button>
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        data-ph={placeholder}
+        className={cx("field-input min-h-[2.6rem] resize-y overflow-auto leading-relaxed", className)}
+        onInput={emit}
+        onBlur={emit}
+      />
+    </div>
+  );
+}
+
 export function TagInput({ values, onChange, placeholder }: { values: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
   const [draft, setDraft] = useState("");
   const commit = () => {
@@ -120,20 +176,42 @@ export function TagInput({ values, onChange, placeholder }: { values: string[]; 
   );
 }
 
-function BulletsEdit({ value, onChange, label = "要点（每行一条）" }: { value: string[]; onChange: (v: string[]) => void; label?: string }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+function BulletsEdit({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const update = (i: number, html: string) => onChange(value.map((b, idx) => (idx === i ? html : b)));
+  const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
+  const add = () => onChange([...value, ""]);
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= value.length) return;
+    const next = [...value];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
   return (
-    <F label={label} className="col-span-2">
-      <div className="relative">
-        <textarea
-          ref={ref}
-          className="field-input resize-y leading-relaxed pr-8"
-          value={value.join("\n")}
-          onChange={(e) => onChange(e.target.value.split("\n"))}
-          rows={Math.max(3, value.length + 1)}
-          placeholder={"主导 XX 系统开发，将耗时从 3s 降至 1s\n每行一条，建议「动词 + 内容 + 成果」（可选 **关键词** 加粗）"}
-        />
-        <BoldButton elRef={ref} onChange={(v) => onChange(v.split("\n"))} />
+    <F label="要点（每条可加粗 / 斜体，支持上下移动）" className="col-span-2">
+      <div className="flex flex-col gap-1.5">
+        {value.map((b, i) => (
+          <div key={i} className="flex items-start gap-1.5">
+            <span className="mt-[0.75rem] h-[5px] w-[5px] shrink-0 rotate-45" style={{ background: "#178a79" }} />
+            <div className="min-w-0 flex-1">
+              <RichTextEditor value={b} onChange={(html) => update(i, html)} placeholder="动词开头 + 内容 + 成果，选中可加粗" />
+            </div>
+            <div className="flex shrink-0 flex-col">
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="tool-btn h-5 w-5 disabled:opacity-30" aria-label="上移要点">
+                <IconChevronUp size={11} />
+              </button>
+              <button type="button" onClick={() => move(i, 1)} disabled={i === value.length - 1} className="tool-btn h-5 w-5 disabled:opacity-30" aria-label="下移要点">
+                <IconChevronDown size={11} />
+              </button>
+            </div>
+            <button type="button" onClick={() => remove(i)} className="tool-btn h-6 w-6 hover:bg-danger-100 hover:text-danger-600" aria-label="删除要点">
+              <IconX size={12} />
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={add} className="self-start inline-flex items-center gap-1 text-[12px] font-medium text-brand-600 transition hover:text-brand-700">
+          <IconPlus size={12} /> 添加要点
+        </button>
       </div>
     </F>
   );
@@ -220,7 +298,7 @@ export function BlockCard({
   const [confirmDel, setConfirmDel] = useState(false);
   const jd = useApp((s) => s.jds[resume.id]);
   const isEntry = ["work_experience_item", "project_experience_item", "education_item"].includes(block.type);
-  const preview = block.title || block.description.slice(0, 28) || block.bullets[0]?.slice(0, 28) || "（空白条目）";
+  const preview = block.title || stripHtml(block.description).slice(0, 28) || stripHtml(block.bullets[0] ?? "").slice(0, 28) || "（空白条目）";
 
   return (
     <div className={cx("group rounded-lg border bg-white/70 transition-all duration-200", open ? "border-ink-200 shadow-sm shadow-ink-950/5" : "border-ink-100 hover:border-ink-200")}>
@@ -277,8 +355,12 @@ export function BlockCard({
           )}
 
           {block.type === "summary" || block.type === "custom_text" ? (
-            <F label="描述" className="col-span-2">
-              <textarea className="field-input resize-y leading-relaxed" rows={4} value={block.description} placeholder="用 2–4 句话概括亮点，突出可度量的成果" onChange={(e) => patchBlock(resume.id, section.section_id, block.block_id, { description: e.target.value })} />
+            <F label="描述（可加粗 / 斜体）" className="col-span-2">
+              <RichTextEditor
+                value={block.description}
+                onChange={(html) => patchBlock(resume.id, section.section_id, block.block_id, { description: html })}
+                placeholder="用 2–4 句话概括亮点，突出可度量的成果（选中可加粗）"
+              />
             </F>
           ) : null}
 

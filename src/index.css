@@ -92,6 +92,13 @@ body {
   }
 }
 
+/* contentEditable 富文本编辑器的占位符 */
+[contenteditable][data-ph]:empty::before {
+  content: attr(data-ph);
+  color: var(--color-ink-300);
+  pointer-events: none;
+}
+
 /* ---------- motion ---------- */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(10px); }

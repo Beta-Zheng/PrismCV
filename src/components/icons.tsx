@@ -207,3 +207,54 @@ export const IconLock = (p: P) =>
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </>
   ));
+
+/** 教育经历：学士帽 */
+export const IconGraduationCap = (p: P) =>
+  base(p, (
+    <>
+      <path d="M22 10L12 5 2 10l10 5 10-5z" />
+      <path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" />
+      <path d="M22 10v5" />
+    </>
+  ));
+
+/** 工作经历：公文包 */
+export const IconBriefcase = (p: P) =>
+  base(p, (
+    <>
+      <rect x="3" y="7" width="14" height="12" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M3 12h14" />
+      <path d="M16 11v7a2 2 0 0 0 2 2h3a2 2 0 0 0 2-2v-7" />
+    </>
+  ));
+
+/** 项目经历：代码分支 */
+export const IconFolderGit = (p: P) =>
+  base(p, (
+    <>
+      <path d="M4 20h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4z" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="20" cy="15" r="2" />
+      <path d="M16 9v5a2 2 0 0 0 2 2h2" />
+      <path d="M16 9a2 2 0 0 1 2-2h2" />
+    </>
+  ));
+
+/** 证书奖项：奖章 */
+export const IconAward = (p: P) =>
+  base(p, (
+    <>
+      <circle cx="12" cy="9" r="5" />
+      <path d="M8.5 13.5L7 22l5-3 5 3-1.5-8.5" />
+    </>
+  ));
+
+/** 个人总结 / 自定义：书本 */
+export const IconBookOpen = (p: P) =>
+  base(p, (
+    <>
+      <path d="M3 4h9a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3z" />
+      <path d="M21 4h-9a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h9z" />
+    </>
+  ));

@@ -150,7 +150,7 @@ export const useApp = create<AppState>()(
           title: title || data.basic_info.name || "未命名简历",
           data: { ...data, metadata: { ...data.metadata, created_at: now } },
           template_id: "modern_single_column",
-          theme: { primary_color: "#0e7a6c", font_size: 14 },
+          theme: { primary_color: "#0e7a6c", font_size: 14, font_family: "sans", density: "medium", header_layout: "row" },
           created_at: now,
           updated_at: now,
         };

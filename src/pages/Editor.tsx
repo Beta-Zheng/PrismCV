@@ -124,6 +124,50 @@ export default function Editor({ resumeId }: { resumeId: string }) {
           ))}
         </div>
 
+        {/* 字体（全文字体） */}
+        <div className="flex items-center gap-1.5">
+          <span className="hidden text-[11px] text-ink-400 sm:inline">字体</span>
+          {([["sans", "黑体"], ["serif", "宋体"], ["system", "系统"], ["kai", "楷体"]] as const).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => app.setTheme(resumeId, { font_family: k })}
+              className={cx("rounded-md px-2 py-1 text-[11px] font-medium transition", (resume.theme.font_family ?? "sans") === k ? "bg-ink-900 text-paper-50 shadow-sm" : "bg-paper-200 text-ink-400 hover:text-ink-800")}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* 布局密度（紧凑 / 中等 / 宽松，用于一页简历篇幅） */}
+        <div className="flex items-center gap-1.5">
+          <span className="hidden text-[11px] text-ink-400 sm:inline">布局</span>
+          {([["compact", "紧凑"], ["medium", "中等"], ["loose", "宽松"]] as const).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => app.setTheme(resumeId, { density: k })}
+              className={cx("rounded-md px-2 py-1 text-[11px] font-medium transition", (resume.theme.density ?? "medium") === k ? "bg-ink-900 text-paper-50 shadow-sm" : "bg-paper-200 text-ink-400 hover:text-ink-800")}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* 条目标题布局（仅非 ATS 模板：居左=标题居左/日期居右；居上=标题居上/信息居下） */}
+        {resume.template_id !== "classic_ats" && (
+          <div className="flex items-center gap-1.5">
+            <span className="hidden text-[11px] text-ink-400 sm:inline">条头</span>
+            {([["row", "居左"], ["stack", "居上"]] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => app.setTheme(resumeId, { header_layout: k })}
+                className={cx("rounded-md px-2 py-1 text-[11px] font-medium transition", (resume.theme.header_layout ?? "row") === k ? "bg-ink-900 text-paper-50 shadow-sm" : "bg-paper-200 text-ink-400 hover:text-ink-800")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="ml-auto flex items-center gap-2">
           <Btn variant="outline" className="h-8 text-[12px]" onClick={() => setAddSecOpen(true)}>
             <IconPlus size={13} /> 添加模块

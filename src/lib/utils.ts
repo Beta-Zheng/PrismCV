@@ -1,3 +1,5 @@
+import type { FontKey, DensityKey } from "../types";
+
 export function uid(prefix = "id"): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -128,7 +130,7 @@ export function resumeToText(data: {
   const parts: string[] = [data.basic_info.name, data.basic_info.title];
   for (const s of data.sections) {
     for (const b of s.blocks) {
-      parts.push(b.title, b.subtitle, b.description, ...b.bullets, ...b.skills);
+      parts.push(b.title, b.subtitle, stripHtml(b.description), ...b.bullets.map(stripHtml), ...b.skills);
     }
   }
   return parts.filter(Boolean).join("\n").toLowerCase();
@@ -136,4 +138,70 @@ export function resumeToText(data: {
 
 export function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/* ---------------- 字体 / 布局密度（模板全局选项） ---------------- */
+
+/** 可选字体 → CSS font-family 栈 */
+export const FONT_STACKS: Record<FontKey, string> = {
+  sans: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+  serif: '"Noto Serif SC", "Songti SC", "SimSun", serif',
+  system: 'system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
+  kai: '"Noto Serif SC", "Kaiti SC", "KaiTi", "楷体", serif',
+};
+
+export function fontStack(key?: FontKey): string {
+  return FONT_STACKS[key ?? "sans"];
+}
+
+/** 三种密度对应的 CSS 变量（间距 + 行高 + 页边距），便于一页简历调节篇幅 */
+export const DENSITY_VARS: Record<DensityKey, Record<string, string>> = {
+  compact: { "--sec-gap": "0.6rem", "--entry-gap": "0.3rem", "--lh": "1.42", "--head-gap": "0.4rem", "--page-pad-x": "2.6rem", "--page-pad-y": "2.2rem" },
+  medium: { "--sec-gap": "1rem", "--entry-gap": "0.55rem", "--lh": "1.6", "--head-gap": "0.7rem", "--page-pad-x": "3rem", "--page-pad-y": "2.75rem" },
+  loose: { "--sec-gap": "1.5rem", "--entry-gap": "0.9rem", "--lh": "1.78", "--head-gap": "1rem", "--page-pad-x": "3.4rem", "--page-pad-y": "3.2rem" },
+};
+
+export function densityVars(key?: DensityKey): Record<string, string> {
+  return DENSITY_VARS[key ?? "medium"];
+}
+
+/* ---------------- 行内富文本（要点 / 描述） ---------------- */
+
+/** 判断字符串是否已是富文本 HTML（而非 ** 标记或纯文本） */
+export function isRichHtml(s: string): boolean {
+  return /<(b|strong|i|em|u|br|span|div|p)\b/i.test(s);
+}
+
+/** 去除所有 HTML 标签，保留纯文本（用于卡片预览 / JD 匹配） */
+export function stripHtml(s: string): string {
+  if (!s) return "";
+  return s.replace(/<[^>]+>/g, "");
+}
+
+/** 仅保留白名单内的行内标签，剥离全部属性，防止富文本注入破坏文档 */
+export function sanitizeInline(html: string): string {
+  if (typeof document === "undefined") return html;
+  const allowed = /^(b|strong|i|em|u|br|span)$/i;
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  const walk = (node: Element) => {
+    [...node.children].forEach((child) => {
+      if (!allowed.test(child.tagName)) {
+        child.replaceWith(...Array.from(child.childNodes));
+      } else {
+        [...child.attributes].forEach((a) => child.removeAttribute(a.name));
+        walk(child);
+      }
+    });
+  };
+  walk(doc.body);
+  return doc.body.innerHTML;
+}
+
+/** 把存储值转成编辑器初始 HTML：已是 HTML 则原样，否则把 **加粗** 转成 <strong> */
+export function prepEditorHtml(value: string): string {
+  if (isRichHtml(value)) return value;
+  return value
+    .split("**")
+    .map((seg, i) => (i % 2 === 1 && seg.length > 0 ? `<strong>${seg}</strong>` : seg))
+    .join("");
 }
