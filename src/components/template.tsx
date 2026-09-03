@@ -53,7 +53,6 @@ interface TStyle {
   isATS: boolean;
   bullet: "disc" | "diamond";
   bulletStyle: BulletStyleKey;
-  date: "plain" | "chip";
   skill: "text" | "chip";
   showLocation: boolean;
   headerLayout: HeaderLayoutKey;
@@ -98,7 +97,7 @@ function BulletList({
 }
 
 function EntryBody({ block, style }: { block: Block; style: TStyle }) {
-  const { color, isATS, date, skill, showLocation, headerLayout, bulletStyle } = style;
+  const { color, isATS, skill, showLocation, headerLayout, bulletStyle } = style;
   const bullets = block.bullets.filter(Boolean);
   const hasContent =
     block.title || block.subtitle || block.description || bullets.length > 0 || block.skills.length > 0 || (showLocation && block.location);
@@ -122,19 +121,11 @@ function EntryBody({ block, style }: { block: Block; style: TStyle }) {
                 </span>
               )}
             </p>
-            {dateRange(block) &&
-              (date === "chip" ? (
-                <p
-                  className="shrink-0 rounded-[3px] px-1.5 py-[0.1em] font-mono text-[0.76em] font-semibold"
-                  style={{ background: `${color}1f`, color, boxShadow: `inset 0 0 0 1px ${color}38` }}
-                >
-                  {dateRange(block)}
-                </p>
-              ) : (
-                <p className="shrink-0 text-[0.85em] font-medium" style={{ color: "#222" }}>
-                  {dateRange(block)}
-                </p>
-              ))}
+            {dateRange(block) && (
+              <p className="shrink-0 text-[0.82em] font-medium tabular-nums" style={{ color: isATS ? "#222" : "#64716c" }}>
+                {dateRange(block)}
+              </p>
+            )}
           </div>
         ))}
       {showLocation && block.location && headerLayout !== "stack" && (
@@ -193,7 +184,7 @@ function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
       >
         {!isATS && <span className="inline-block h-[1em] w-[4px] rounded-full" style={{ background: color }} />}
         {section.title}
-        {!isATS && <span className="h-[1.5px] flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${color}59, ${color}0f)` }} />}
+        {!isATS && <span className="h-[1.5px] flex-1 rounded-full" style={{ background: `${color}30` }} />}
       </h2>
       {blocks.map((b) => (
         <EntryBody key={b.block_id} block={b} style={secStyle} />
@@ -216,7 +207,7 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
           {Icon ? <Icon size={12} className="text-white" /> : <span className="h-[0.35em] w-[0.35em] rounded-full bg-white" />}
         </span>
         {section.title}
-        <span className="h-[1.5px] flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${color}59, ${color}0f)` }} />
+        <span className="h-[1.5px] flex-1 rounded-full" style={{ background: `${color}30` }} />
       </h2>
       {blocks.map((b) => (
         <div key={b.block_id} className="mb-[var(--entry-gap)] break-inside-avoid">
@@ -237,12 +228,8 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
                     </span>
                   )}
                 </p>
-                <div className="shrink-0 text-right text-[0.8em] font-medium" style={{ color: "#333" }}>
-                  {dateRange(b) && (
-                    <span className="rounded-[3px] px-1.5 py-[0.1em] font-mono" style={{ background: `${color}1a`, color, boxShadow: `inset 0 0 0 1px ${color}33` }}>
-                      {dateRange(b)}
-                    </span>
-                  )}
+                <div className="shrink-0 text-right text-[0.82em] font-medium tabular-nums" style={{ color: "#64716c" }}>
+                  {dateRange(b) && <span>{dateRange(b)}</span>}
                   {b.location && <span className="ml-2 text-ink-400">{b.location}</span>}
                 </div>
               </div>
@@ -352,8 +339,8 @@ export function ResumeSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
   const contacts = [info.email, info.phone, info.location, info.website].filter(Boolean);
 
   const style: TStyle = isATS
-    ? { color: "#111111", isATS: true, bullet: "disc", bulletStyle: resume.theme.bullet_style ?? "disc", date: "plain", skill: "text", showLocation: true, headerLayout: resume.theme.header_layout ?? "row" }
-    : { color, isATS: false, bullet: "diamond", bulletStyle: resume.theme.bullet_style ?? "diamond", date: "chip", skill: "chip", showLocation: true, headerLayout: resume.theme.header_layout ?? "row" };
+    ? { color: "#111111", isATS: true, bullet: "disc", bulletStyle: resume.theme.bullet_style ?? "disc", skill: "text", showLocation: true, headerLayout: resume.theme.header_layout ?? "row" }
+    : { color, isATS: false, bullet: "diamond", bulletStyle: resume.theme.bullet_style ?? "diamond", skill: "chip", showLocation: true, headerLayout: resume.theme.header_layout ?? "row" };
 
   const bodySections = orderedVisible(resume.data).filter((s) => s.type !== "basic_info");
 
