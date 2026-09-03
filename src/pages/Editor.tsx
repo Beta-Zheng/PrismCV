@@ -11,7 +11,7 @@ import { SectionCard } from "../components/blocks";
 import { AIPanel, JDPanel, OutlinePanel } from "../components/panels";
 import { A4Sheet } from "../components/template";
 import { Btn, Modal, ModalHeader, SaveIndicator } from "../components/ui";
-import { IconChevronLeft, IconGrip, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
+import { IconCheck, IconChevronLeft, IconGrip, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
 
 const THEME_COLORS = ["#0e7a6c", "#1d4ed8", "#9f1239", "#b45309", "#334155"];
 
@@ -74,100 +74,164 @@ export default function Editor({ resumeId }: { resumeId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* 顶部工具栏 */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-ink-200 bg-paper-25 px-4 py-2.5">
-        <button onClick={() => app.go({ name: "home" })} className="tool-btn h-8 w-8 border border-ink-200 bg-white" aria-label="返回">
-          <IconChevronLeft size={16} />
-        </button>
-        <input
-          value={resume.title}
-          onChange={(e) => app.renameResume(resumeId, e.target.value)}
-          className="w-44 rounded-md border border-transparent bg-transparent px-2 py-1 font-display text-[16px] font-bold text-ink-900 outline-none transition hover:border-ink-200 focus:border-brand-500 focus:bg-white"
-          aria-label="简历标题"
-        />
-        <SaveIndicator />
-
-        <div className="mx-1 hidden h-6 w-px bg-ink-200 sm:block" />
-
-        {/* 模板切换 */}
-        <div className="flex rounded-lg bg-paper-200 p-0.5">
-          {TEMPLATES.map((t) => (
-            <button key={t.template_id} onClick={() => app.setTemplate(resumeId, t.template_id)} className={cx("rounded-md px-2.5 py-1 text-[12px] font-bold transition", resume.template_id === t.template_id ? "bg-ink-900 text-paper-50 shadow-sm" : "text-ink-400 hover:text-ink-800")}>
-              {t.name}
-            </button>
-          ))}
+      {/* 顶部工具栏：按功能分组，减少视觉混乱 */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-ink-200 bg-paper-25 px-3 py-2">
+        {/* 文档组 */}
+        <div className="flex items-center gap-2 rounded-lg bg-white px-2 py-1.5 shadow-sm shadow-ink-950/5 ring-1 ring-ink-100">
+          <button onClick={() => app.go({ name: "home" })} className="tool-btn h-7 w-7" aria-label="返回">
+            <IconChevronLeft size={16} />
+          </button>
+          <input
+            value={resume.title}
+            onChange={(e) => app.renameResume(resumeId, e.target.value)}
+            className="w-40 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 font-display text-[15px] font-bold text-ink-900 outline-none transition hover:border-ink-200 focus:border-brand-500 focus:bg-white"
+            aria-label="简历标题"
+          />
+          <SaveIndicator />
         </div>
 
-        {/* 主题色 */}
-        {resume.template_id !== "classic_ats" && (
-          <div className="flex items-center gap-1.5">
-            {THEME_COLORS.map((c) => (
-              <button key={c} onClick={() => app.setTheme(resumeId, { primary_color: c })} className={cx("h-5 w-5 rounded-full border-2 transition-transform hover:scale-110", resume.theme.primary_color === c ? "border-ink-900 scale-110" : "border-white shadow")} style={{ background: c }} aria-label={`主题色 ${c}`} />
+        {/* 模板组 */}
+        <div className="flex items-center gap-1 rounded-lg bg-white px-2 py-1.5 shadow-sm shadow-ink-950/5 ring-1 ring-ink-100">
+          <span className="hidden pr-1 text-[10px] font-bold uppercase tracking-wider text-ink-300 lg:inline">模板</span>
+          <div className="flex rounded-md bg-paper-100 p-0.5">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.template_id}
+                onClick={() => app.setTemplate(resumeId, t.template_id)}
+                className={cx(
+                  "rounded-md px-2.5 py-1 text-[11px] font-bold transition",
+                  resume.template_id === t.template_id ? "bg-ink-900 text-paper-50 shadow-sm" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                )}
+                title={t.description}
+              >
+                {t.name}
+              </button>
             ))}
-            <input
-              type="color"
-              value={resume.theme.primary_color}
-              onChange={(e) => app.setTheme(resumeId, { primary_color: e.target.value })}
-              className="h-5 w-5 cursor-pointer overflow-hidden rounded-full border-2 border-white p-0 shadow"
-              title="自定义主题色"
-              aria-label="自定义主题色"
-            />
           </div>
-        )}
-
-        {/* 字号 */}
-        <div className="flex rounded-lg bg-paper-200 p-0.5">
-          {[13, 14, 15].map((n) => (
-            <button key={n} onClick={() => app.setTheme(resumeId, { font_size: n })} className={cx("rounded-md px-2 py-1 font-mono text-[11px] font-bold transition", resume.theme.font_size === n ? "bg-white text-ink-900 shadow-sm" : "text-ink-400 hover:text-ink-800")}>
-              {n}
-            </button>
-          ))}
         </div>
 
-        {/* 字体（全文字体） */}
-        <div className="flex items-center gap-1.5">
-          <span className="hidden text-[11px] text-ink-400 sm:inline">字体</span>
-          {([["sans", "黑体"], ["serif", "宋体"], ["system", "系统"], ["kai", "楷体"]] as const).map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => app.setTheme(resumeId, { font_family: k })}
-              className={cx("rounded-md px-2 py-1 text-[11px] font-medium transition", (resume.theme.font_family ?? "sans") === k ? "bg-ink-900 text-paper-50 shadow-sm" : "bg-paper-200 text-ink-400 hover:text-ink-800")}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* 外观组：颜色（仅非 ATS） + 字号 + 字体 */}
+        <div className="flex items-center gap-2 rounded-lg bg-white px-2 py-1.5 shadow-sm shadow-ink-950/5 ring-1 ring-ink-100">
+          <span className="hidden pr-1 text-[10px] font-bold uppercase tracking-wider text-ink-300 lg:inline">外观</span>
 
-        {/* 布局密度（紧凑 / 中等 / 宽松，用于一页简历篇幅） */}
-        <div className="flex items-center gap-1.5">
-          <span className="hidden text-[11px] text-ink-400 sm:inline">布局</span>
-          {([["compact", "紧凑"], ["medium", "中等"], ["loose", "宽松"]] as const).map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => app.setTheme(resumeId, { density: k })}
-              className={cx("rounded-md px-2 py-1 text-[11px] font-medium transition", (resume.theme.density ?? "medium") === k ? "bg-ink-900 text-paper-50 shadow-sm" : "bg-paper-200 text-ink-400 hover:text-ink-800")}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+          {/* 主题色 */}
+          {resume.template_id !== "classic_ats" && (
+            <div className="flex items-center gap-1">
+              {THEME_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => app.setTheme(resumeId, { primary_color: c })}
+                  className={cx(
+                    "relative flex h-[22px] w-[22px] items-center justify-center rounded-full transition hover:scale-110",
+                    resume.theme.primary_color === c ? "ring-2 ring-offset-1 ring-ink-900" : "ring-1 ring-ink-200 hover:ring-ink-400"
+                  )}
+                  style={{ background: c }}
+                  aria-label={`主题色 ${c}`}
+                >
+                  {resume.theme.primary_color === c && <IconCheck size={12} className="text-white" />}
+                </button>
+              ))}
+              <label
+                className="relative flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full ring-1 ring-ink-200 transition hover:ring-ink-400"
+                title="自定义主题色"
+              >
+                <input
+                  type="color"
+                  value={resume.theme.primary_color}
+                  onChange={(e) => app.setTheme(resumeId, { primary_color: e.target.value })}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  aria-label="自定义主题色"
+                />
+                <div className="h-3 w-3 rounded-full bg-gradient-to-br from-red-400 via-green-400 to-blue-400" />
+              </label>
+            </div>
+          )}
 
-        {/* 条目标题布局（仅非 ATS 模板：居左=标题居左/日期居右；居上=标题居上/信息居下） */}
-        {resume.template_id !== "classic_ats" && (
-          <div className="flex items-center gap-1.5">
-            <span className="hidden text-[11px] text-ink-400 sm:inline">条头</span>
-            {([["row", "居左"], ["stack", "居上"]] as const).map(([k, label]) => (
+          {resume.template_id !== "classic_ats" && <div className="hidden h-4 w-px bg-ink-200 sm:block" />}
+
+          {/* 字号 */}
+          <div className="flex rounded-md bg-paper-100 p-0.5">
+            {[13, 14, 15].map((n) => (
+              <button
+                key={n}
+                onClick={() => app.setTheme(resumeId, { font_size: n })}
+                className={cx(
+                  "rounded-md px-2 py-0.5 font-mono text-[11px] font-bold transition",
+                  resume.theme.font_size === n ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+
+          <div className="hidden h-4 w-px bg-ink-200 sm:block" />
+
+          {/* 字体 */}
+          <div className="flex rounded-md bg-paper-100 p-0.5">
+            {([
+              ["sans", "黑体"],
+              ["serif", "宋体"],
+              ["system", "系统"],
+              ["kai", "楷体"],
+              ["mono", "等宽"],
+              ["fangsong", "仿宋"],
+            ] as const).map(([k, label]) => (
               <button
                 key={k}
-                onClick={() => app.setTheme(resumeId, { header_layout: k })}
-                className={cx("rounded-md px-2 py-1 text-[11px] font-medium transition", (resume.theme.header_layout ?? "row") === k ? "bg-ink-900 text-paper-50 shadow-sm" : "bg-paper-200 text-ink-400 hover:text-ink-800")}
+                onClick={() => app.setTheme(resumeId, { font_family: k })}
+                className={cx(
+                  "rounded-md px-1.5 py-0.5 text-[11px] font-medium transition",
+                  (resume.theme.font_family ?? "sans") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                )}
+                title={`字体：${label}`}
               >
                 {label}
               </button>
             ))}
           </div>
-        )}
+        </div>
 
+        {/* 布局组：密度 + 条头（条头仅非 ATS） */}
+        <div className="flex items-center gap-1.5 rounded-lg bg-white px-2 py-1.5 shadow-sm shadow-ink-950/5 ring-1 ring-ink-100">
+          <span className="hidden pr-1 text-[10px] font-bold uppercase tracking-wider text-ink-300 lg:inline">布局</span>
+          <div className="flex rounded-md bg-paper-100 p-0.5">
+            {([["compact", "紧凑"], ["medium", "中等"], ["loose", "宽松"]] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => app.setTheme(resumeId, { density: k })}
+                className={cx(
+                  "rounded-md px-2 py-0.5 text-[11px] font-medium transition",
+                  (resume.theme.density ?? "medium") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {resume.template_id !== "classic_ats" && (
+            <>
+              <div className="hidden h-4 w-px bg-ink-200 sm:block" />
+              <div className="flex rounded-md bg-paper-100 p-0.5">
+                {([["row", "居左"], ["stack", "居上"]] as const).map(([k, label]) => (
+                  <button
+                    key={k}
+                    onClick={() => app.setTheme(resumeId, { header_layout: k })}
+                    className={cx(
+                      "rounded-md px-2 py-0.5 text-[11px] font-medium transition",
+                      (resume.theme.header_layout ?? "row") === k ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                    )}
+                    title={k === "row" ? "标题居左，日期居右" : "标题居上，日期与地点居下"}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* 操作组 */}
         <div className="ml-auto flex items-center gap-2">
           <Btn variant="outline" className="h-8 text-[12px]" onClick={() => setAddSecOpen(true)}>
             <IconPlus size={13} /> 添加模块

@@ -85,23 +85,27 @@ function RichField({
 }
 
 /** 轻量行内富文本编辑器：contentEditable + 加粗/斜体工具栏，输出消毒后的 HTML。
- *  与预览端 renderRich 配合，实现「要点/描述统一为富文本、可自定义加粗」。 */
+ *  与预览端 renderRich 配合，实现「要点/描述统一为富文本、可自定义加粗」。
+ *  通过 emittingRef 避免自产自销：用户输入时不会重设 innerHTML，防止光标跳到末尾。 */
 function RichTextEditor({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const lastEmitted = useRef(value);
+  const emittingRef = useRef(false);
   useEffect(() => {
     const el = ref.current;
-    if (el && value !== lastEmitted.current) {
-      el.innerHTML = prepEditorHtml(value);
-      lastEmitted.current = value;
+    if (!el || emittingRef.current) return;
+    const desired = prepEditorHtml(value);
+    if (el.innerHTML !== desired) {
+      el.innerHTML = desired;
     }
   }, [value]);
   const emit = () => {
     const el = ref.current;
     if (!el) return;
-    const html = el.innerHTML;
-    lastEmitted.current = html;
-    onChange(html);
+    emittingRef.current = true;
+    onChange(el.innerHTML);
+    window.setTimeout(() => {
+      emittingRef.current = false;
+    }, 0);
   };
   return (
     <div className="relative">

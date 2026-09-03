@@ -69,7 +69,7 @@ export interface ResumeData {
   school_badge_url?: string;
 }
 
-export type FontKey = "sans" | "serif" | "system" | "kai";
+export type FontKey = "sans" | "serif" | "system" | "kai" | "mono" | "fangsong";
 export type DensityKey = "compact" | "medium" | "loose";
 export type HeaderLayoutKey = "row" | "stack";
 
@@ -81,7 +81,7 @@ export interface Resume {
   theme: {
     primary_color: string;
     font_size: number;
-    /** 全文字体：sans=思源黑体 / serif=思源宋体 / system=系统默认 / kai=楷体 */
+    /** 全文字体：sans=黑体 / serif=宋体 / system=系统默认 / kai=楷体 / mono=等宽 / fangsong=仿宋 */
     font_family?: FontKey;
     /** 布局紧凑度：紧凑 / 中等 / 宽松，用于一页简历的篇幅调节 */
     density?: DensityKey;

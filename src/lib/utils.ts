@@ -147,7 +147,9 @@ export const FONT_STACKS: Record<FontKey, string> = {
   sans: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
   serif: '"Noto Serif SC", "Songti SC", "SimSun", serif',
   system: 'system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif',
-  kai: '"Noto Serif SC", "Kaiti SC", "KaiTi", "楷体", serif',
+  kai: '"Kaiti SC", "KaiTi", "楷体", serif',
+  mono: '"JetBrains Mono", "SF Mono", "Fira Code", "Consolas", "Noto Sans SC", monospace',
+  fangsong: '"FangSong SC", "FangSong", "仿宋", serif',
 };
 
 export function fontStack(key?: FontKey): string {
