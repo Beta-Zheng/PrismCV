@@ -24,7 +24,9 @@
     "recharts": "^2.10.0",
     "uuid": "^9.0.1",
     "vitest": "^4.1.10",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.15",
+    "@fontsource/noto-sans-sc": "^5.2.5",
+    "@fontsource/noto-serif-sc": "^5.2.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.7",

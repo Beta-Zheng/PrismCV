@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { structureResume, emptyResume } from "../parser";
+import { structureResume, emptyResume, joinPageItems, detectMultiColumn } from "../parser";
 
 const SAMPLE = `张伟
 高级后端工程师
@@ -89,5 +89,97 @@ describe("structureResume：健壮性", () => {
     const data = emptyResume();
     expect(data.metadata.source).toBe("empty");
     expect(data.sections.find((s) => s.type === "summary")!.blocks[0].type).toBe("summary");
+  });
+});
+
+describe("joinPageItems：PDF 文本项 → 文本行（修复：阅读顺序 + 补空格）", () => {
+  // transform = [fontSize,0,0,fontSize,x,y]
+  const item = (str: string, x: number, y: number, size = 12) => ({ str, transform: [size, 0, 0, size, x, y], width: str.length * size * 0.5 });
+
+  it("同行词按 x 升序排列，并在存在横坐标间隙时补空格", () => {
+    const text = joinPageItems([item("Wei", 60, 800), item("Zhang", 120, 800)]);
+    expect(text).toBe("Wei Zhang");
+  });
+
+  it("内容流乱序（x 递减）也能还原为正确阅读顺序", () => {
+    const text = joinPageItems([item("Zhang", 120, 800), item("Wei", 60, 800)]);
+    expect(text).toBe("Wei Zhang");
+  });
+
+  it("不同 y 的行被正确换行（不再用固定 3 单位阈值）", () => {
+    const text = joinPageItems([item("Line A", 60, 800), item("Line B", 60, 760)]);
+    expect(text.split("\n")).toEqual(["Line A", "Line B"]);
+  });
+
+  it("相邻 CJK 字符不补空格", () => {
+    const text = joinPageItems([item("张", 60, 800), item("伟", 84, 800)]);
+    expect(text).toBe("张伟");
+  });
+});
+
+describe("detectMultiColumn：多栏探测（命中后由 UI 提示核对）", () => {
+  const item = (str: string, x: number, y: number, size = 12) => ({ str, transform: [size, 0, 0, size, x, y], width: str.length * size * 0.5 });
+
+  it("单栏（y 不重叠或 x 连续）判定为非多栏", () => {
+    // 左对齐单栏，11 行从上到下
+    const lines = Array.from({ length: 11 }, (_, i) => item(`Line ${i}`, 60, 800 - i * 20));
+    expect(detectMultiColumn(lines)).toBe(false);
+  });
+
+  it("左右两栏（行内 x 双峰、中间空档）判定为多栏", () => {
+    const items: ReturnType<typeof item>[] = [];
+    // 每行：左栏 2 个词(x≈60,150) + 右栏 1 个词(x≈320)，y 范围重叠
+    for (let i = 0; i < 6; i++) {
+      items.push(item(`LeftA ${i}`, 60, 800 - i * 20));
+      items.push(item(`LeftB ${i}`, 150, 800 - i * 20));
+      items.push(item(`Right ${i}`, 320, 800 - i * 20));
+    }
+    expect(detectMultiColumn(items)).toBe(true);
+  });
+});
+
+describe("structureResume：真实版式兼容性（修复回归）", () => {
+  it("日期单独成行：正确拆出 2 条经历，公司/职位/日期不丢失、无幽灵条目", () => {
+    const text = `张伟
+高级后端工程师
+zhangwei@example.com
+
+工作经历
+字节流科技
+高级后端工程师
+2020.03 - 2023.06
+- 负责订单系统设计与开发
+蓝山网络
+后端工程师
+2017.07 - 2020.02
+- 参与支付网关核心模块开发`;
+    const data = structureResume(text, "pasted_text");
+    const work = data.sections.find((s) => s.type === "work_experience")!;
+    expect(work.blocks.length).toBe(2);
+    const [a, b] = work.blocks;
+    expect(a.title).toBe("字节流科技");
+    expect(a.subtitle).toBe("高级后端工程师");
+    expect(a.start_date).toBe("2020-03");
+    expect(a.end_date).toBe("2023-06");
+    expect(a.bullets[0]).toContain("订单系统");
+    expect(b.title).toBe("蓝山网络");
+    expect(b.subtitle).toBe("后端工程师");
+    expect(b.start_date).toBe("2017-07");
+  });
+
+  it("英文长标题（>16 字符）能被识别为对应模块，而非落入正文", () => {
+    const text = `Wei Zhang
+Senior Backend Engineer
+wei.zhang@example.com
+
+Technical Skills & Tools
+Java, Spring Boot, MySQL
+React, TypeScript`;
+    const data = structureResume(text, "pasted_text");
+    const skills = data.sections.find((s) => s.type === "skills")!;
+    expect(skills.blocks.length).toBeGreaterThan(0);
+    const all = skills.blocks.flatMap((bl) => bl.skills);
+    expect(all).toContain("Java");
+    expect(all).toContain("React");
   });
 });

@@ -240,13 +240,14 @@ export function ruleSuggestion(action: AIAction, block: Block, jdKeywords: strin
       out.explanation = "规则引擎：去除冗余修饰词与弱势动词，统一为结果导向表述（未连接模型时的本地兜底）。";
       break;
     case "rewrite":
-      out.suggested_block.bullets = bullets.map((b) => {
-        const p = polishBullet(b);
-        return /成果|提升|降低|缩短|减少|增长|覆盖|达成/.test(p) ? p : p;
-      });
+      // 规则引擎无法真正重写语义（禁止编造事实），与 polish 的差异在于：
+      // 强制用强动词开头，并对缺少成果数据的 bullet 给出补充提示
+      out.suggested_block.bullets = bullets.map((b) => polishBullet(b));
       out.suggested_block.description = block.description;
-      out.explanation = "规则引擎：按「动词 + 内容 + 成果」梳理句式；无模型时不新增任何事实。";
-      out.warnings = bullets.filter((b) => !/\d/.test(b)).map((b) => `「${b.slice(0, 18)}…」缺少成果数据，建议补充`);
+      out.explanation = "规则引擎：按「强动词开头 + 内容 + 成果」梳理句式（不新增任何事实）；无模型时不编造数据。";
+      out.warnings = bullets
+        .filter((b) => !/\d/.test(b) && !/(成果|提升|降低|缩短|减少|增长|覆盖|达成|优化)/.test(b))
+        .map((b) => `「${b.slice(0, 18)}…」建议补充：动作带来的成果数据（比例 / 规模 / 耗时）`);
       break;
     case "quantify":
       out.explanation = "规则引擎：已标记可补充量化指标的描述（不修改原文、不编造数字）。";

@@ -16,6 +16,98 @@ export interface ParseResult {
   text?: string;
   error?: string;
   scanner?: boolean; // PDF 无可提取文本
+  maybeMultiColumn?: boolean; // 疑似多栏/分栏版式，阅读顺序可能不准确
+}
+
+/* ---------------- PDF 文本项 → 文本行 ---------------- */
+/* pdfjs 的 getTextContent 已会在词间插入空格项，但仍有两类失真需要兜底：
+ *   1) 同一视觉行的词可能不是按 x 递增返回（内容流顺序 ≠ 阅读顺序）；
+ *   2) 紧排/微调字距时 pdfjs 不会补空格，导致 "WorkExperience" 粘连。
+ * 这里按 (y 降序, x 升序) 聚行、并按横坐标间隙补空格来修正。 */
+
+interface PageTextItem {
+  str: string;
+  transform: number[]; // [a,b,c,d,e,f]，e/f 为 x/y 平移
+  width?: number;
+  height?: number;
+}
+
+function clusterLines(items: PageTextItem[]): PageTextItem[][] {
+  const sorted = [...items].sort((a, b) => b.transform[5] - a.transform[5] || a.transform[4] - b.transform[4]);
+  const lines: PageTextItem[][] = [];
+  let cur: PageTextItem[] = [];
+  let curY: number | null = null;
+  let curSize = 12;
+  for (const it of sorted) {
+    const y = it.transform[5];
+    const size = Math.hypot(it.transform[0], it.transform[1]) || 12;
+    // 换行阈值改为相对字号（约 0.6 倍行高），避免小字号两行被误并、也避免单行被拆断
+    if (curY === null || Math.abs(y - curY) <= Math.max(2, curSize * 0.6)) {
+      cur.push(it);
+    } else {
+      lines.push(cur);
+      cur = [it];
+    }
+    curY = y;
+    curSize = size;
+  }
+  if (cur.length) lines.push(cur);
+  for (const ln of lines) ln.sort((a, b) => a.transform[4] - b.transform[4]);
+  return lines;
+}
+
+const CJK_RE = /[一-鿿㐀-䶿]/;
+function isCjk(s: string): boolean {
+  return CJK_RE.test(s);
+}
+
+export function joinPageItems(items: PageTextItem[]): string {
+  const lines = clusterLines(items);
+  const out: string[] = [];
+  for (const ln of lines) {
+    let line = "";
+    let lastX: number | null = null;
+    let lastW = 0;
+    let lastSize = 12;
+    for (const it of ln) {
+      const str = it.str ?? "";
+      if (!str) continue;
+      const x = it.transform[4];
+      const size = Math.hypot(it.transform[0], it.transform[1]) || 12;
+      const w = it.width ?? 0;
+      const gap = lastX !== null ? x - (lastX + lastW) : 0;
+      // 仅在非 CJK 且横坐标存在明显间隙时补空格；pdfjs 已插入的空格项原样保留
+      const needsSpace =
+        lastX !== null && gap > lastSize * 0.18 && !isCjk(str[0] ?? "") && !isCjk(line.slice(-1)) && !/^\s/.test(str);
+      line += (needsSpace ? " " : "") + str;
+      lastX = x;
+      lastW = w;
+      lastSize = size;
+    }
+    if (line.trim()) out.push(line.trim());
+  }
+  return out.join("\n");
+}
+
+/* 多栏探测：clusterLines 会把同一 y 的左右栏并到「同一视觉行」，所以双栏的真实特征是
+ * 单行内部 x 坐标呈双峰（中间有明显空档）。命中后由 UI 提示用户核对/改用粘贴，
+ * 而非默默产出错乱的阅读顺序（完整栏块分割属独立工程，暂不做）。 */
+export function detectMultiColumn(items: PageTextItem[]): boolean {
+  const lines = clusterLines(items);
+  if (lines.length < 3) return false;
+  for (const ln of lines) {
+    if (ln.length < 3) continue;
+    const xs = ln
+      .map((it) => it.transform[4] + (it.width ?? 0) / 2)
+      .sort((a, b) => a - b);
+    const lineW = xs[xs.length - 1] - xs[0];
+    if (lineW < 200) continue; // 单行不够宽，不是双栏特征
+    let maxGap = 0;
+    for (let i = 1; i < xs.length; i++) maxGap = Math.max(maxGap, xs[i] - xs[i - 1]);
+    // 行内出现明显空档（> 行宽 25%）即判定为双栏
+    if (maxGap > lineW * 0.25) return true;
+  }
+  return false;
 }
 
 /* ---------------- 文本提取（按文件类型分发） ---------------- */
@@ -28,28 +120,19 @@ async function extractPdf(file: File): Promise<ParseResult> {
     const buf = await file.arrayBuffer();
     const doc = await pdfjs.getDocument({ data: buf }).promise;
     const parts: string[] = [];
+    let maybeMultiColumn = false;
     for (let p = 1; p <= doc.numPages; p++) {
       const page = await doc.getPage(p);
       const tc = await page.getTextContent();
-      let line = "";
-      let lastY: number | null = null;
-      for (const item of tc.items as Array<{ str: string; transform: number[] }>) {
-        const y = item.transform[5];
-        if (lastY !== null && Math.abs(y - lastY) > 3) {
-          parts.push(line);
-          line = "";
-        }
-        line += item.str;
-        lastY = y;
-      }
-      if (line) parts.push(line);
+      if (detectMultiColumn(tc.items as PageTextItem[])) maybeMultiColumn = true;
+      parts.push(joinPageItems(tc.items as PageTextItem[]));
     }
     await doc.destroy();
     const text = parts.map((l) => l.trim()).filter(Boolean).join("\n");
     if (text.replace(/\s/g, "").length < 20) {
       return { ok: false, scanner: true, error: "该 PDF 未包含可提取文本（可能是扫描件），请改用「粘贴文本」方式创建" };
     }
-    return { ok: true, text };
+    return { ok: true, text, maybeMultiColumn };
   } catch (e) {
     return { ok: false, error: `PDF 解析失败：${e instanceof Error ? e.message : "未知错误"}` };
   }
@@ -104,7 +187,9 @@ function cleanLine(l: string): string {
 
 function isHeadingLine(l: string): SectionType | null {
   const c = cleanLine(l).replace(/[:：\s]+$/, "");
-  if (c.length > 16) return null;
+  // 长度上限放宽到 30，避免 "Technical Skills & Tools" 这类英文长标题被误判为非标题，
+  // 同时仍排除明显是正文的超长句（标题通常由 HEADING_MAP 的已知模式锚定开头）
+  if (c.length > 30) return null;
   for (const h of HEADING_MAP) if (h.re.test(c)) return h.type;
   return null;
 }
@@ -164,17 +249,47 @@ function splitTitleLine(line: string): { title: string; subtitle: string } {
   return { title: line.trim(), subtitle: "" };
 }
 
-/** 将一段 section 内的行切分为若干条目（以含日期或「标题 | 副标题」结构的行作为条目起点） */
+/** 将一段 section 内的行切分为若干条目。
+ *  条目起点：含「公司 | 职位」分隔符、含行内日期、或「标题 - 副标题」形态的行；
+ *  上一段已闭合（出现过日期/子弹点）后的新行也视为新条目起点，从而支持
+ *  「日期单独成行」「公司 / 职位分行」等常见版式，避免生成「日期幽灵条目」。 */
+function isBulletLine(l: string): boolean {
+  return /^[-•·▪◦*]\s/.test(l) || /^\d+[.、)]\s/.test(l);
+}
+function isDateLine(l: string): boolean {
+  return DATE_RANGE_RE.test(l) || DATE_SINGLE_RE.test(l);
+}
+function isEntryHeader(l: string): boolean {
+  if (/[|｜]/.test(l)) return true; // 含「公司 | 职位」分隔符
+  if (isDateLine(l)) return false; // 纯日期行不是条目头（避免 "2020.03 - 2023.06" 被误判）
+  return /^.{1,40}[—–-]\s*.{1,40}$/.test(l); // 仅非日期的「标题 - 副标题」形态
+}
+
 function splitItems(lines: string[]): string[][] {
   const items: string[][] = [];
   let cur: string[] = [];
-  const looksLikeStart = (l: string) =>
-    DATE_RANGE_RE.test(l) || DATE_SINGLE_RE.test(l) || /[|｜]/.test(l) || /^.{1,40}[—–-]\s*.{1,40}$/.test(l);
-  for (const l of lines) {
-    if (looksLikeStart(l) && cur.length > 0 && (DATE_RANGE_RE.test(l) || DATE_SINGLE_RE.test(l))) {
-      items.push(cur);
+  for (const raw of lines) {
+    const l = raw;
+    if (isBulletLine(l)) {
+      cur.push(l);
+      continue;
+    }
+    if (isDateLine(l)) {
+      // 纯日期行归属到当前条目；但「公司 | 职位 日期」这类同时是条目标题的行应另起一条
+      if (cur.length === 0) cur = [l];
+      else if (isEntryHeader(l)) { items.push(cur); cur = [l]; }
+      else cur.push(l);
+      continue;
+    }
+    // 普通行（公司 / 职位 / 描述）
+    if (cur.length === 0) {
       cur = [l];
-    } else if (looksLikeStart(l) && cur.length === 0) {
+      continue;
+    }
+    const plainCount = cur.filter((x) => !isBulletLine(x) && !isDateLine(x)).length;
+    const prevClosed = cur.some(isDateLine) || cur.some(isBulletLine);
+    if (isEntryHeader(l) || prevClosed || plainCount >= 2) {
+      items.push(cur);
       cur = [l];
     } else {
       cur.push(l);
@@ -187,30 +302,44 @@ function splitItems(lines: string[]): string[][] {
 function buildEntryBlocks(lines: string[], type: BlockType): Block[] {
   const items = splitItems(lines);
   return items.map((item) => {
+    // 找到条目内的日期行（优先非首行，支持「日期单独成行」；首行含日期时由 parseDates 直接处理）
+    let dateIdx = -1;
+    for (let i = 1; i < item.length; i++) {
+      if (isDateLine(cleanLine(item[i]))) {
+        dateIdx = i;
+        break;
+      }
+    }
     const first = cleanLine(item[0]);
-    const { start, end, rest } = parseDates(first);
-    const { title, subtitle } = splitTitleLine(rest || first);
+    const { start: fs, end: fe, rest: frest } = parseDates(first);
+    let start = fs;
+    let end = fe;
+    let work = item;
+    if (dateIdx >= 0) {
+      const d = parseDates(cleanLine(item[dateIdx]));
+      if (!start) start = d.start;
+      if (!end) end = d.end;
+      work = item.filter((_, i) => i !== dateIdx);
+    }
+    const { title, subtitle } = splitTitleLine(frest || first);
+
     const bullets: string[] = [];
     const descParts: string[] = [];
-    for (const raw of item.slice(1)) {
+    for (const raw of work.slice(1)) {
       const l = cleanLine(raw);
       if (!l) continue;
-      const bulletMatch = l.match(/^[-•·▪◦*]\s*(.+)$/) || l.match(/^\d+[.、)]\s*(.+)$/);
-      if (bulletMatch) bullets.push(bulletMatch[1].trim());
-      else if (DATE_RANGE_RE.test(l) && !bullets.length) {
-        // 日期单独一行
-        const d = parseDates(l);
-        if (d.start) {
-          if (!item[0].match(DATE_RANGE_RE)) {
-            // keep
-          }
-        }
-        continue;
-      } else descParts.push(l);
+      const bm = l.match(/^[-•·▪◦*]\s*(.+)$/) || l.match(/^\d+[.、)]\s*(.+)$/);
+      if (bm) bullets.push(bm[1].trim());
+      else descParts.push(l);
+    }
+    // 副标题兜底：若标题行未拆出副标题，且存在一行较短的描述，则视为副标题（如「公司」「职位」分行）
+    let sub = subtitle;
+    if (!sub && descParts.length && descParts[0].length <= 40) {
+      sub = descParts.shift()!;
     }
     return mkBlock(type, {
       title: title.slice(0, 80),
-      subtitle: subtitle.slice(0, 80),
+      subtitle: sub.slice(0, 80),
       start_date: start,
       end_date: end,
       bullets: bullets.slice(0, 12),
