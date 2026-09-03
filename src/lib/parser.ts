@@ -61,8 +61,39 @@ function isCjk(s: string): boolean {
   return CJK_RE.test(s);
 }
 
-export function joinPageItems(items: PageTextItem[]): string {
-  const lines = clusterLines(items);
+/** 把一页文本项按「栏」切分（基于 x 坐标的栏间空档）。
+ *  单栏页返回 [items]（不切分）；双栏页按最大的栏间空档切成左右两栏，
+ *  每栏各自按 y 降序排列，从而保证「左栏从上到下 → 右栏从上到下」的正确阅读顺序，
+ *  避免 clusterLines 把左右栏交错并成「同一视觉行」导致的顺序错乱。 */
+function splitIntoColumns(items: PageTextItem[]): PageTextItem[][] {
+  if (items.length < 6) return [items];
+  const meta = items.map((it) => {
+    const x = it.transform[4];
+    const w = it.width ?? 0;
+    return { x0: x, x1: x + w, xc: x + w / 2, it };
+  });
+  const minX = Math.min(...meta.map((m) => m.x0));
+  const maxX1 = Math.max(...meta.map((m) => m.x1));
+  const pageW = maxX1 - minX;
+  if (pageW < 120) return [items];
+  const sorted = [...meta].sort((a, b) => a.xc - b.xc);
+  // 项间空档大于阈值（页宽 8% 且绝对值 > 18）才视为栏间空档；过小仅是词/字间距
+  const gaps: Array<{ pos: number; size: number }> = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = sorted[i].x0 - sorted[i - 1].x1;
+    if (gap > Math.max(18, pageW * 0.08)) gaps.push({ pos: (sorted[i - 1].x1 + sorted[i].x0) / 2, size: gap });
+  }
+  if (!gaps.length) return [items];
+  // 取最大空档作为切分线（v1 单切分 → 两栏，覆盖绝大多数简历双栏场景）
+  const split = gaps.sort((a, b) => b.size - a.size)[0].pos;
+  const left = meta.filter((m) => m.xc < split).map((m) => m.it);
+  const right = meta.filter((m) => m.xc >= split).map((m) => m.it);
+  // 两侧都要有足够内容，否则视为单行内偶然的大间距（如拉开字距的标题），不切分
+  if (left.length < 2 || right.length < 2) return [items];
+  return [left, right];
+}
+
+function joinColumnLines(lines: PageTextItem[][]): string {
   const out: string[] = [];
   for (const ln of lines) {
     let line = "";
@@ -87,6 +118,13 @@ export function joinPageItems(items: PageTextItem[]): string {
     if (line.trim()) out.push(line.trim());
   }
   return out.join("\n");
+}
+
+export function joinPageItems(items: PageTextItem[]): string {
+  const columns = splitIntoColumns(items);
+  if (columns.length <= 1) return joinColumnLines(clusterLines(items));
+  // 多栏：每栏内部按 y 降序（上→下），栏与栏之间用空行隔开，保证阅读顺序正确
+  return columns.map((col) => joinColumnLines(clusterLines(col))).join("\n\n");
 }
 
 /* 多栏探测：clusterLines 会把同一 y 的左右栏并到「同一视觉行」，所以双栏的真实特征是

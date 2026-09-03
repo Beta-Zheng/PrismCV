@@ -115,6 +115,19 @@ describe("joinPageItems：PDF 文本项 → 文本行（修复：阅读顺序 + 
     const text = joinPageItems([item("张", 60, 800), item("伟", 84, 800)]);
     expect(text).toBe("张伟");
   });
+
+  it("双栏 PDF：左栏从上到下、右栏从上到下，阅读顺序正确（不交错）", () => {
+    // 左栏 x≈60/130，右栏 x≈340，左右 y 范围重叠（朴素 clusterLines 会把左右并成同一视觉行 → 顺序错乱）
+    const items: ReturnType<typeof item>[] = [];
+    for (let i = 0; i < 3; i++) {
+      const y = 800 - i * 40;
+      items.push(item(`L${i}`, 60, y));
+      items.push(item(`L${i}b`, 130, y));
+      items.push(item(`R${i}`, 340, y));
+    }
+    const text = joinPageItems(items);
+    expect(text.split("\n")).toEqual(["L0 L0b", "L1 L1b", "L2 L2b", "", "R0", "R1", "R2"]);
+  });
 });
 
 describe("detectMultiColumn：多栏探测（命中后由 UI 提示核对）", () => {
