@@ -9,7 +9,7 @@ import { cx, fmtDateCompact, nowISO } from "../lib/utils";
 import { useApp, useResume } from "../lib/store";
 import { SectionCard } from "../components/blocks";
 import { AIPanel, JDPanel, OutlinePanel } from "../components/panels";
-import { A4Sheet } from "../components/template";
+import { A4Sheet, MIN_ZOOM } from "../components/template";
 import { Btn, Modal, ModalHeader, SaveIndicator } from "../components/ui";
 import { IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconLayout, IconPalette, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
 
@@ -107,13 +107,24 @@ function SortableSection({ resume, section, onRequestAI }: { resume: Resume; sec
   );
 }
 
+/**
+ * 预览弹窗的缩放档位。最小值与 template.tsx 的 MIN_ZOOM 是一对耦合常量：
+ * 分隔线要满足「线宽 × 最小缩放 ≥ 2px」才不会在光栅化时因相位差而粗细不一
+ * （原理见 template.tsx 中 RULE_PX_FADE 的注释）。改动任一侧都要同步另一侧：
+ *   新增更小的档位 → 需按 2 / 新最小缩放 调大线宽；
+ *   调小线宽 → 需确认 线宽 × 最小缩放 仍 ≥ 2。
+ */
+const ZOOM_LEVELS = [MIN_ZOOM, 0.95, 1.0] as const;
+
 export default function Editor({ resumeId }: { resumeId: string }) {
   const resume = useResume(resumeId);
   const app = useApp();
   const [panelTab, setPanelTab] = useState<"ai" | "jd">("ai");
   const [activeTarget, setActiveTarget] = useState<{ sectionId: string; blockId: string } | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [zoom, setZoom] = useState(0.78);
+  // 默认值必须取自 ZOOM_LEVELS：此前写死 0.78，既不在档位内（打开时无按钮高亮），
+  // 又低于最小档位，等于让分隔线的线宽约束在最常见的一屏里直接失效
+  const [zoom, setZoom] = useState<number>(ZOOM_LEVELS[0]);
   const [addSecOpen, setAddSecOpen] = useState(false);
   const [newSecTitle, setNewSecTitle] = useState("");
 
@@ -382,10 +393,7 @@ export default function Editor({ resumeId }: { resumeId: string }) {
           </div>
           <div className="flex items-center gap-1.5">
             <div className="flex rounded-lg bg-paper-200 p-0.5">
-              {/* 缩放档位：不再含 0.62 等极端档位；当前最小 0.85，配合 template.tsx
-                  的 RULE_PX = 2，使线宽缩放后 ≥ 1.7px，几何相位差在视觉上不可辨。
-                  若需要更小的预览档位，需同步按 2/zoom 反推调大 RULE_PX。 */}
-              {[0.85, 0.95, 1.0].map((z) => (
+              {ZOOM_LEVELS.map((z) => (
                 <button key={z} onClick={() => setZoom(z)} className={cx("rounded-md px-2 py-0.5 font-mono text-[10.5px] font-bold transition", zoom === z ? "bg-white text-ink-900 shadow-sm" : "text-ink-400")}>
                   {Math.round(z * 100)}%
                 </button>

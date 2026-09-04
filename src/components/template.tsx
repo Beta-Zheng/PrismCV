@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import type { Block, Resume, Section, SectionType, HeaderLayoutKey, BulletStyleKey } from "../types";
 import { cx, fontStack, densityVars, isRichHtml, resolveBulletStyle, sanitizeInline } from "../lib/utils";
-import { IconArrowRight, IconAward, IconBookOpen, IconBriefcase, IconFolderGit, IconGraduationCap, IconLayers, IconWrench } from "./icons";
+import { IconArrowRight, IconAward, IconBriefcase, IconFolderGit, IconGraduationCap, IconLayers, IconUser, IconWrench } from "./icons";
 
 function orderedVisible(data: Resume["data"]): Section[] {
   return [...data.sections].filter((s) => s.visible).sort((a, b) => a.order - b.order);
@@ -27,8 +27,12 @@ function dateRange(b: Block): string {
 
 /**
  * 各模块语义图标：教育=学士帽、工作=公文包、项目=代码分支、证书=奖章、
- * 技能=扳手、总结=书本、自定义=图层。
+ * 技能=扳手、总结=人像、自定义=图层。
  * 未覆盖的模块类型会回退为一个小圆点，因此新增 SectionType 时应同步补这里。
+ *
+ * 选图原则：优先「小尺寸可辨识」。徽章内图标实际只有 0.68em（约 11px），
+ * 细节多的图形（如书本翻页、引号弯钩）缩到这个尺寸会糊成一团，
+ * 所以 summary 选人像而非书本 —— 后者还与 education 的学士帽语义重叠。
  */
 const SECTION_ICON: Partial<Record<SectionType, (props: { size?: number; className?: string }) => ReactNode>> = {
   education: IconGraduationCap,
@@ -36,7 +40,7 @@ const SECTION_ICON: Partial<Record<SectionType, (props: { size?: number; classNa
   project_experience: IconFolderGit,
   certifications: IconAward,
   skills: IconWrench,
-  summary: IconBookOpen,
+  summary: IconUser,
   custom: IconLayers,
 };
 
@@ -170,26 +174,98 @@ function EntryBody({ block, style }: { block: Block; style: TStyle }) {
   );
 }
 
-/**
- * 分隔线宽度，全部模板共用（含 ATS 的标题下边框），避免各写一份数值再次分叉。
- *
- * 取 2px 的推导：编辑器预览对整页套了 transform: scale()，各模块起始 y 由前置
- * 内容累加得出（rem/em 计算、非整数），每条线落在像素网格上的相位都不同。抗锯齿
- * 会按覆盖比例把线拆到相邻像素行，相位一变视觉粗细就跳变。要消除这种不一致，
- * 线宽在缩放后必须 ≥ 2px——2px 在任何相位下都横跨 2 个完整的物理像素行，
- * 视觉粗细恒定；<2px 则会出现"1 行满 + 淡边"与"2 行各半"的跳变。
- * 推导下限 = 2 / 最小缩放。当前最小缩放 0.85（见 Editor.tsx），故线宽 ≥ 2.35px，
- * 取整数 2px + 缩放档位一并收紧，使 0.85×2 = 1.7px 已非常接近 2px，相位差残
- * 余在视觉上不可辨。线变粗带来的视觉重量增加通过降低透明度（40%→33%）抵消，
- * 100%（打印 / 导出无缩放）下视觉重量 ≈ 2×33% = 0.66，与原 1.8×40% = 0.72 接近。
- * 模板之间的线可以风格不同（颜色、形态），但不应再低于 2px，否则会重新引入
- * 渲染层的粗细抖动。
- */
-const RULE_PX = 2;
+/* ------------------------------------------------------------------ *
+ * 模块标题的视觉元素：图标徽章 + 羽化分隔带
+ * ------------------------------------------------------------------ */
 
-/** 模块标题右侧的延伸分隔线。不加圆角：圆角会削掉线两端，标题越长削得越明显 */
+/**
+ * 预览弹窗对整页套了 transform: scale(zoom)，这里是缩放档位的最小值。
+ * Editor.tsx 的 ZOOM_LEVELS 直接引用它，构成单一真源 —— 想加更小的档位，
+ * 只能改这一个数字，且会立刻被下面的 DEV 断言拦下。
+ */
+export const MIN_ZOOM = 0.85;
+
+/**
+ * 为什么不再用「1～2px 的细实线」做分隔线：
+ *
+ * 光栅化时，元素高度是逻辑值（可以是小数），最终必须落到整数物理像素行上。
+ * 一条高 H、起点 y 的横线，跨越的像素行数只可能是 floor(H)+1 或 floor(H)+2
+ * —— 取决于 y 的小数部分（相位）。而每条分隔线的 y 是前置内容高度累加出来的，
+ * rem/em 计算得到的非整数各不相同，于是同一页里：
+ *   - 相位靠前的线跨 2 行、每行墨多 → 看起来「细而实」
+ *   - 相位靠后的线跨 3 行、墨被摊薄 → 看起来「粗而淡」
+ * 两者总面积相同，但人眼感知到的粗细/深浅不同，这就是「相位差」。
+ *
+ * H 越小，+1/+2 行的相对差异越大（H=1.8 时是 2 行 vs 3 行，相差 50%）；
+ * H 越大差异越小，且始终存在满覆盖的「实心核」把视觉锚定住。
+ * 因此要保证 H × MIN_ZOOM ≥ 2px（跨 3～4 行，相对差 ≤ 33%，视觉不可辨）。
+ */
+const RULE_PX_FADE = 3; // 羽化分隔带高度：3 × 0.85 = 2.55px ✓
+const RULE_PX_SOLID = 2.4; // ATS 实线下边框：2.4 × 0.85 = 2.04px ✓
+
+/**
+ * 把上面这条「H × MIN_ZOOM ≥ 2px」的约束从注释升级成护栏。
+ * 前几轮的教训：推导写在注释里，但缩放档位和线宽分散在两个文件，
+ * 改了一边忘了另一边就悄悄失效（默认 zoom 还曾写死成档位外的 0.78）。
+ * 现在改任一侧，开发模式启动时会立刻在控制台报警。生产构建无副作用。
+ */
+if (import.meta.env.DEV) {
+  for (const [name, px] of [["RULE_PX_FADE", RULE_PX_FADE], ["RULE_PX_SOLID", RULE_PX_SOLID]] as const) {
+    const scaled = px * MIN_ZOOM;
+    if (scaled < 2) {
+      console.warn(
+        `[template] ${name}=${px}px × MIN_ZOOM=${MIN_ZOOM} = ${scaled.toFixed(2)}px < 2px。` +
+          `预览缩放下分隔线会因光栅化相位差呈现粗细不一，请调大线宽或调大 MIN_ZOOM。`
+      );
+    }
+  }
+}
+
+/**
+ * 模块标题右侧的羽化渐隐分隔带（替代原先的等宽细实线）。
+ *
+ * 三层设计，每层都在解决上一版的缺陷：
+ * 1. 高度 3px —— 见 RULE_PX_FADE，让缩放后仍 ≥ 2px，消除相位差；
+ * 2. 横向渐变（近标题端较实 → 右端完全透明）—— 细实线一旦加粗到 3px 会显得
+ *    笨重，渐隐把「线」变成「一道向右消隐的光」，视觉重量反而比原来的
+ *    2px 实线更轻，同时天然弱化了两端形态。注意人眼对渐变线的感知重量主要由
+ *    最实的一端决定，所以起点给到 36% 保证存在感，不能按平均透明度估算；
+ * 3. 圆角固定 2px 而非 rounded-full —— 圆角半径大于线高一半时会把线削成
+ *    纺锤形，标题越长削得越明显；2px 圆角在 3px 高度下只做柔和收边。
+ */
 function SectionRule({ color }: { color: string }) {
-  return <span className="flex-1" style={{ height: RULE_PX, background: `${color}33` }} />;
+  return (
+    <span
+      className="flex-1"
+      style={{
+        height: RULE_PX_FADE,
+        borderRadius: 2,
+        background: `linear-gradient(to right, ${color}5c 0%, ${color}2e 45%, ${color}00 100%)`,
+      }}
+    />
+  );
+}
+
+/**
+ * 模块标题的图标徽章。两个非 ATS 模板共用结构（保证切换模板时观感不跳变），
+ * 用形状区分调性：现代单栏=圆角方块（干练），学术双栏=圆形（柔和）。
+ * 尺寸全部走 em，随字号与密度联动；图标固定 0.68em（约占徽章 54%，
+ * 落在 50%～60% 的舒适区，比原先写死 12px 在大字号下偏小的问题更稳）。
+ */
+function SectionBadge({ section, color, shape }: { section: Section; color: string; shape: "squircle" | "circle" }) {
+  const Icon = SECTION_ICON[section.type];
+  return (
+    <span
+      className="flex h-[1.25em] w-[1.25em] shrink-0 items-center justify-center"
+      style={{ background: color, borderRadius: shape === "circle" ? "9999px" : "0.3em" }}
+    >
+      {Icon ? (
+        <Icon className="h-[0.68em] w-[0.68em] text-white" />
+      ) : (
+        <span className="h-[0.3em] w-[0.3em] rounded-full bg-white" />
+      )}
+    </span>
+  );
 }
 
 function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
@@ -202,14 +278,14 @@ function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
   return (
     <section className="mb-[var(--sec-gap)]">
       <h2
-        className={cx("mb-[var(--head-gap)] text-[1.12em] font-bold", !isATS && "flex items-center gap-2")}
+        className={cx("mb-[var(--head-gap)] text-[1.12em] font-bold", !isATS && "flex items-center gap-[0.5em]")}
         style={
           isATS
-            ? { borderBottom: `${RULE_PX}px solid #111`, paddingBottom: "0.22em", color: "#111", textTransform: "uppercase", letterSpacing: "0.08em", breakAfter: "avoid" }
+            ? { borderBottom: `${RULE_PX_SOLID}px solid #111`, paddingBottom: "0.26em", color: "#111", textTransform: "uppercase", letterSpacing: "0.08em", breakAfter: "avoid" }
             : { color, letterSpacing: "0.02em", breakAfter: "avoid" }
         }
       >
-        {!isATS && <span className="inline-block h-[1em] w-[4px] rounded-full" style={{ background: color }} />}
+        {!isATS && <SectionBadge section={section} color={color} shape="squircle" />}
         {section.title}
         {!isATS && <SectionRule color={color} />}
       </h2>
@@ -224,15 +300,12 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
   const blocks = visibleBlocks(section);
   if (section.type === "summary" && !blocks.some((b) => b.description)) return null;
   if (blocks.length === 0 && section.type !== "summary") return null;
-  const Icon = SECTION_ICON[section.type];
   // 模块级要点样式优先，未设置时继承全局默认
   const bs = resolveBulletStyle(section.bullet_style, bulletStyle);
   return (
     <section className="mb-[var(--sec-gap)]">
-      <h2 className="mb-[var(--head-gap)] flex items-center gap-2 text-[1.12em] font-bold" style={{ color, letterSpacing: "0.02em", breakAfter: "avoid" }}>
-        <span className="flex h-[1.15em] w-[1.15em] shrink-0 items-center justify-center rounded-full" style={{ background: color }}>
-          {Icon ? <Icon size={12} className="text-white" /> : <span className="h-[0.35em] w-[0.35em] rounded-full bg-white" />}
-        </span>
+      <h2 className="mb-[var(--head-gap)] flex items-center gap-[0.5em] text-[1.12em] font-bold" style={{ color, letterSpacing: "0.02em", breakAfter: "avoid" }}>
+        <SectionBadge section={section} color={color} shape="circle" />
         {section.title}
         <SectionRule color={color} />
       </h2>
