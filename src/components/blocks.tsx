@@ -435,6 +435,9 @@ const TYPE_LABEL: Record<Block["type"], string> = {
   custom_text: "自定义",
 };
 
+/** 内联 AI 工具条的一步直达动作（设计 §4.3-1）；其余 4 个动作保留在 AI ▾ 菜单 */
+const QUICK_AI_ACTIONS: AIAction[] = ["polish", "quantify", "jd_match"];
+
 export function BlockCard({
   resume,
   section,
@@ -471,8 +474,23 @@ export function BlockCard({
         <span className="chip shrink-0 bg-paper-200 font-mono text-ink-500">{TYPE_LABEL[block.type]}</span>
         <span className={cx("min-w-0 flex-1 truncate text-[13px]", block.title ? "font-medium text-ink-800" : "text-ink-300")}>{preview}</span>
         {block.start_date && <span className="shrink-0 font-mono text-[11px] text-ink-300">{block.start_date}{block.end_date ? ` – ${block.end_date}` : ""}</span>}
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-          <AIActionMenu hasJD={!!jd} onAction={(a) => onRequestAI(section.section_id, block.block_id, a)} />
+        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100" onClick={(e) => e.stopPropagation()}>
+          {/* 内联 AI 工具条：光谱胶囊条（看到光谱 = AI）；润色/量化/JD 对齐一步直达 */}
+          <span className="ai-ring mr-0.5 flex items-center gap-0.5 rounded-full p-0.5">
+            <AIActionMenu hasJD={!!jd} onAction={(a) => onRequestAI(section.section_id, block.block_id, a)} />
+            <span className="h-4 w-px bg-line" aria-hidden />
+            {QUICK_AI_ACTIONS.map((a) => (
+              <button
+                key={a}
+                disabled={a === "jd_match" && !jd}
+                title={a === "jd_match" && !jd ? "先在右侧 JD 面板绑定岗位描述" : ACTION_LABELS[a].hint}
+                onClick={() => onRequestAI(section.section_id, block.block_id, a)}
+                className="rounded-full px-2 py-0.5 text-[11.5px] font-bold text-ink-700 transition hover:bg-brand-50 hover:text-brand-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {ACTION_LABELS[a].label}
+              </button>
+            ))}
+          </span>
           <button className="tool-btn" onClick={() => moveBlock(resume.id, section.section_id, block.block_id, "up")} disabled={index === 0} aria-label="上移">
             <IconChevronUp size={14} />
           </button>
