@@ -14,7 +14,7 @@ import { A4Sheet, MIN_ZOOM } from "../components/template";
 import { Btn, Modal, ModalHeader, SaveIndicator } from "../components/ui";
 import { IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconLayout, IconPalette, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
 
-const THEME_COLORS = ["#0e7a6c", "#1d4ed8", "#9f1239", "#b45309", "#334155"];
+const THEME_COLORS = ["#4F46E5", "#1d4ed8", "#9f1239", "#b45309", "#334155"];
 
 /** 工具栏下拉菜单：点击展开，点击外部 / 按 Esc 关闭。带图标 + 功能副标签 + 面板说明，让新用户一眼看懂这组设置管什么 */
 function ToolbarMenu({

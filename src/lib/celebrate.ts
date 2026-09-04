@@ -6,7 +6,7 @@
 import confetti from "canvas-confetti";
 
 /** 品牌色系：墨绿深浅 + seal 橙 + 暖纸白 */
-const PALETTE = ["#0e7a6c", "#3ba392", "#a6d9cd", "#d97a16", "#f0f3ee"];
+const PALETTE = ["#4F46E5", "#38BDF8", "#C084FC", "#D97706", "#C3C8FB"];
 
 const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
