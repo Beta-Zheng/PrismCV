@@ -9,6 +9,11 @@
 > **Local-first · Privacy by default · Human-in-the-loop AI · Data-driven editing**
 > 本地优先 · 隐私默认保护 · 用户可控 · AI 辅助而非自动覆盖 · 结构化数据驱动
 
+
+## 名称由来
+
+**Prism**（棱镜）——一束白光穿过棱镜，被分成一条光谱，正如界面里那道 AI 光谱；简历也是一块棱镜：把真实的你，折射成机会想看到的样子。
+
 **PrismCV** is a local-first, AI-assisted resume workbench that runs entirely in your browser. Upload an existing resume — PDF / DOCX / MD / TXT — and it is parsed into structured data; edit module by module, drag to reorder, paste a **job description** to get a local matching analysis, and ask AI for per-section suggestions that are always shown as a diff before you accept them. Export a pixel-faithful A4 PDF through the system print pipeline. **No data leaves your machine by default**; external models must be explicitly enabled and confirmed per call.
 
 The name is a pun on optics: a resume is a *prism* that splits your career into the spectrum a role is looking for — the same tricolor spectrum (`#38BDF8 → #6366F1 → #C084FC`) used across the UI's AI accents.
@@ -77,7 +82,7 @@ Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to 
 
 - **左栏 · 模块大纲**：拖拽调整模块顺序、开关显隐、添加自定义模块；
 - **中栏 · 编辑区**：每个模块卡片支持整卡拖拽排序、Block 增删、上移/下移、显隐；描述与要点支持选中加粗/斜体；所有字段即时编辑；
-- **右栏 · AI 与 JD 面板**；
+- **右栏 · AI 润色与 JD match**；
 - **自动保存**：停止输入约 1 秒后写入本地，顶栏显示保存时间戳。
 
 ### 3. 模块拖拽排序
@@ -86,7 +91,7 @@ Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to 
 
 ### 4. 配置模型
 
-「模型与隐私」页预置本地 Ollama 配置。启动 Ollama 并 `ollama pull qwen2.5:7b` 后点「测试」即可验证；也可新增 OpenAI Compatible 外部模型。**外部模型默认关闭**，开启后每次外部调用前弹窗确认。
+「模型与隐私」页预置本地 Ollama 配置。**外部模型默认关闭**，开启后每次外部调用前弹窗确认。
 
 ### 5. 导出 PDF
 
@@ -103,13 +108,3 @@ Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to 
 - 解析失败、AI 失败、导出失败均有兜底，不丢失用户已编辑内容。
 
 ---
-
-
-## 名称由来
-
-**Prism**（棱镜）——一束白光穿过棱镜，被分成一条光谱，正如界面里那道 AI 光谱（`#38BDF8 → #6366F1 → #C084FC`）。简历也是一块棱镜：把真实的你，折射成机会想看到的样子。**CV** 直抒品类。
-
-
-## Contributing
-
-Issues & PRs welcome. 代码约定：模块与 store 层保持纯净（`lib/` 不与 UI 主题耦合），改动请同步跑 `npm run typecheck && npm test`。
