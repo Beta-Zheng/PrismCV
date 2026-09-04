@@ -171,21 +171,26 @@ function EntryBody({ block, style }: { block: Block; style: TStyle }) {
 }
 
 /**
- * 模块标题右侧的延伸分隔线，各模板共用（避免每处各写一份导致走样）。
+ * 分隔线宽度，全部模板共用（含 ATS 的标题下边框），避免各写一份数值再次分叉。
  *
- * 线宽为什么是 1.8px：编辑器预览对整页套了 transform: scale(0.62/0.78/0.92)，
+ * 为什么是 1.8px：编辑器预览对整页套了 transform: scale(0.62/0.78/0.92)，
  * 缩放后线宽 = 1.8 × zoom = 1.12 / 1.40 / 1.66px。各模块起始 y 坐标由前置内容
  * 累加得出，小数部分各不相同，因此每条线落在像素网格上的相位也不同，抗锯齿会
  * 按覆盖比例把线拆到相邻像素行上：
- *   - 缩放后线宽 < 1px（如旧的 1.5px × 0.62 = 0.93px）时，整条线都靠覆盖率分配
- *     灰度，相位一变就在「1 行实线」和「2 行各半的淡线」之间跳变，观感粗细不一；
+ *   - 缩放后线宽 < 1px（如原先的 1.4/1.5px，× 0.62 后仅 0.87/0.93px）时，
+ *     整条线都靠覆盖率分配灰度，相位一变就在「1 行实线」和「2 行各半的淡线」
+ *     之间跳变，同一页内各模块的线看起来粗细不一；
  *   - 缩放后 ≥ 1px 时，无论相位如何都至少有 1 个满覆盖像素行（实心核），
  *     视觉上恒为一条实线，相位只影响极淡的边缘余量，粗细稳定。
- * 取 1.8px 是保证最小缩放 0.62 下仍有实心核的最小值，同时 100%（打印/导出）
- * 下仍是细线。同理不加圆角：圆角会削掉线两端，标题越长削得越明显。
+ * 1.8px 是保证最小缩放 0.62 下仍有实心核的取值，同时 100%（打印 / 导出 PDF
+ * 无缩放）下仍是细线，不显笨重。模板之间的线可以风格不同（颜色、形态），
+ * 但不应低于这个值，否则会重新引入渲染层的粗细抖动。
  */
+const RULE_PX = 1.8;
+
+/** 模块标题右侧的延伸分隔线。不加圆角：圆角会削掉线两端，标题越长削得越明显 */
 function SectionRule({ color }: { color: string }) {
-  return <span className="h-[1.8px] flex-1" style={{ background: `${color}40` }} />;
+  return <span className="flex-1" style={{ height: RULE_PX, background: `${color}40` }} />;
 }
 
 function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
@@ -201,7 +206,7 @@ function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
         className={cx("mb-[var(--head-gap)] text-[1.12em] font-bold", !isATS && "flex items-center gap-2")}
         style={
           isATS
-            ? { borderBottom: "1.4px solid #111", paddingBottom: "0.22em", color: "#111", textTransform: "uppercase", letterSpacing: "0.08em", breakAfter: "avoid" }
+            ? { borderBottom: `${RULE_PX}px solid #111`, paddingBottom: "0.22em", color: "#111", textTransform: "uppercase", letterSpacing: "0.08em", breakAfter: "avoid" }
             : { color, letterSpacing: "0.02em", breakAfter: "avoid" }
         }
       >

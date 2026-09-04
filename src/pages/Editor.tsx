@@ -382,6 +382,8 @@ export default function Editor({ resumeId }: { resumeId: string }) {
           </div>
           <div className="flex items-center gap-1.5">
             <div className="flex rounded-lg bg-paper-200 p-0.5">
+              {/* 缩放档位：若新增比 0.62 更小的档位，需同步调大 template.tsx 的
+                  RULE_PX，否则分隔线缩放后不足 1px，会重现各模块粗细不一 */}
               {[0.62, 0.78, 0.92].map((z) => (
                 <button key={z} onClick={() => setZoom(z)} className={cx("rounded-md px-2 py-0.5 font-mono text-[10.5px] font-bold transition", zoom === z ? "bg-white text-ink-900 shadow-sm" : "text-ink-400")}>
                   {Math.round(z * 100)}%
