@@ -93,43 +93,6 @@ npm test              # 运行单元测试（parser / jd / ai / utils / flows）
 
 ---
 
-## 与设计文档（PRD）的交付对照
-
-### MVP 功能（§4.1）
-
-| 编号 | 模块 | 状态 | 实现位置 |
-|---|---|---|---|
-| FR-01 | 文件上传（PDF/DOCX/MD/TXT，≤10MB，拖拽或点击，类型/大小校验） | ✅ | `pages/Home.tsx`、`lib/parser.ts` |
-| FR-02 | 文档解析为结构化 Resume JSON（状态机 pending→success/failed，失败可降级） | ✅ | `lib/parser.ts`（pdfjs / mammoth / 规则引擎） |
-| FR-03 | 手动粘贴兜底（解析失败自动给入口，空内容提示） | ✅ | `pages/Home.tsx` |
-| FR-04 | 简历编辑器（8 类模块、Block 全字段编辑、增删移动、显隐、1s 自动保存） | ✅ | `pages/Editor.tsx`、`components/blocks.tsx` |
-| FR-05 | 模板预览（现代单栏 / 经典 ATS / 学术双栏，主题色、字号、模块显隐与排序联动） | ✅ | `components/template.tsx` |
-| FR-06 | JD 粘贴输入与结构化解析（岗位/职责/要求/技能/关键词/学历/年限） | ✅ | `lib/jd.ts`、`components/panels.tsx` |
-| FR-07 | JD 匹配（技能/关键词/经历相关性/表达质量四维评分 + 缺失项 + 建议） | ✅ | `lib/jd.ts` |
-| FR-08 | AI 单块建议（润色/改写/量化/缩短/扩写/JD对齐/ATS优化，7 种动作） | ✅ | `lib/ai.ts`、`lib/store.ts` |
-| FR-09 | AI 建议确认（Diff 对比、接受/拒绝/编辑后接受，绝不直接覆盖） | ✅ | `components/panels.tsx` |
-| FR-10 | 模型管理（Ollama + OpenAI Compatible，测试连接，路由策略，外部默认关闭） | ✅ | `pages/Models.tsx`、`lib/ai.ts` |
-| FR-11 | PDF 导出（当前模板/顺序/显隐，中文正常，文本可复制，A4） | ✅ | `pages/Editor.tsx`（打印管线） |
-| FR-12 | 本地存储（持久化，刷新不丢） | ✅ | `lib/store.ts`（zustand persist） |
-| FR-13 | 数据删除（删简历级联清理、清空全部、备份/恢复） | ✅ | `pages/Settings.tsx` |
-| FR-14 | 模块顺序拖拽（左侧大纲 + 编辑区双入口，实时保存，导出一致） | ✅ | `pages/Editor.tsx`（dnd-kit） |
-
-### 架构适配说明
-
-PRD 原设计为 Next.js + FastAPI 双端架构。本项目交付为**纯前端本地应用**（单页、可离线静态托管），这是为「本地部署 / 单机私有化」目标做的等价下沉，所有后端职责在浏览器内完成：
-
-| PRD 设计 | 本实现 | 等价性 |
-|---|---|---|
-| FastAPI 服务 | 浏览器内服务层（`lib/parser.ts`、`lib/jd.ts`、`lib/ai.ts`、`lib/store.ts`） | 接口化的 Parser / LLM Provider / 模板渲染，逻辑一致 |
-| SQLite + 文件目录 | localStorage（结构化 JSON，zustand persist） | 同样本地、可备份、可清空 |
-| PyMuPDF / python-docx | pdfjs-dist / mammoth（WASM/JS 实现） | 同为文本提取，失败可降级 |
-| Playwright 导出 PDF | 浏览器打印管线（A4 @media print，打印节点 portal 挂载） | 文本可复制、中文正常、按用户顺序 |
-| `~/.ai-resume/` | 浏览器存储 + JSON 备份文件 | 设置页一键备份 / 恢复 / 清空 |
-
-该适配反而强化了隐私目标：**零服务端进程、零默认网络请求**，除用户显式配置的模型端点外不发起任何外部调用。
-
----
-
 ## 使用指南
 
 ### 1. 创建简历（三种方式）
@@ -168,13 +131,6 @@ PRD 原设计为 Next.js + FastAPI 双端架构。本项目交付为**纯前端�
 - API Key 界面掩码展示，不写入备份与日志；
 - 富文本渲染前经白名单消毒（`sanitizeInline`），防注入；
 - 解析失败、AI 失败、导出失败均有兜底，不丢失用户已编辑内容。
-
----
-
-## 已知视觉问题与测试
-
-- 简历模板当前视觉问题评估：[docs/视觉问题评估.md](docs/视觉问题评估.md)
-- 完整功能测试用例：[docs/功能测试用例.md](docs/功能测试用例.md)
 
 ---
 
