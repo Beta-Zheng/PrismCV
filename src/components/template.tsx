@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import type { Block, Resume, Section, SectionType, HeaderLayoutKey, BulletStyleKey } from "../types";
 import { cx, fontStack, densityVars, isRichHtml, resolveBulletStyle, sanitizeInline } from "../lib/utils";
-import { IconArrowRight, IconAward, IconBookOpen, IconBriefcase, IconFolderGit, IconGraduationCap } from "./icons";
+import { IconArrowRight, IconAward, IconBookOpen, IconBriefcase, IconFolderGit, IconGraduationCap, IconLayers, IconWrench } from "./icons";
 
 function orderedVisible(data: Resume["data"]): Section[] {
   return [...data.sections].filter((s) => s.visible).sort((a, b) => a.order - b.order);
@@ -25,14 +25,19 @@ function dateRange(b: Block): string {
   return s || e; // 仅 start 或仅 end 时直接返回，避免前导 " – " 横线
 }
 
-/** 各模块语义图标：教育=学士帽、工作=公文包、项目=代码分支、证书=奖章、总结=书本、其余=图层 */
+/**
+ * 各模块语义图标：教育=学士帽、工作=公文包、项目=代码分支、证书=奖章、
+ * 技能=扳手、总结=书本、自定义=图层。
+ * 未覆盖的模块类型会回退为一个小圆点，因此新增 SectionType 时应同步补这里。
+ */
 const SECTION_ICON: Partial<Record<SectionType, (props: { size?: number; className?: string }) => ReactNode>> = {
   education: IconGraduationCap,
   work_experience: IconBriefcase,
   project_experience: IconFolderGit,
   certifications: IconAward,
+  skills: IconWrench,
   summary: IconBookOpen,
-  custom: IconBookOpen,
+  custom: IconLayers,
 };
 
 /** 行内富文本渲染：已是 HTML 则经白名单消毒后渲染，否则把 **关键词** 渲染为加粗 */
