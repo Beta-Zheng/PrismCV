@@ -187,38 +187,25 @@ function EntryBody({ block, style }: { block: Block; style: TStyle }) {
 export const MIN_ZOOM = 0.85;
 
 /**
- * 为什么不再用「1～2px 的细实线」做分隔线：
- *
- * 光栅化时，元素高度是逻辑值（可以是小数），最终必须落到整数物理像素行上。
- * 一条高 H、起点 y 的横线，跨越的像素行数只可能是 floor(H)+1 或 floor(H)+2
- * —— 取决于 y 的小数部分（相位）。而每条分隔线的 y 是前置内容高度累加出来的，
- * rem/em 计算得到的非整数各不相同，于是同一页里：
- *   - 相位靠前的线跨 2 行、每行墨多 → 看起来「细而实」
- *   - 相位靠后的线跨 3 行、墨被摊薄 → 看起来「粗而淡」
- * 两者总面积相同，但人眼感知到的粗细/深浅不同，这就是「相位差」。
- *
- * H 越小，+1/+2 行的相对差异越大（H=1.8 时是 2 行 vs 3 行，相差 50%）；
- * H 越大差异越小，且始终存在满覆盖的「实心核」把视觉锚定住。
- * 因此要保证 H × MIN_ZOOM ≥ 2px（跨 3～4 行，相对差 ≤ 33%，视觉不可辨）。
+ * ATS 模板的实线下边框，2.4 px × 0.85 = 2.04 px ≥ 2 px，跨 2~3 行，
+ * 相位差在阈值内。其他模板已不再依赖此约束 —— 改用 1 px + 8% 不透明度
+ * 走「低对比度天然解耦相位差」的策略，详见 SectionRule。
  */
-const RULE_PX_FADE = 5; // 柔化分隔带几何高度：5 × 0.85 = 4.25px ✓
-const RULE_PX_SOLID = 2.4; // ATS 实线下边框：2.4 × 0.85 = 2.04px ✓
+const RULE_PX_SOLID = 2.4;
 
 /**
- * 把上面这条「H × MIN_ZOOM ≥ 2px」的约束从注释升级成护栏。
- * 前几轮的教训：推导写在注释里，但缩放档位和线宽分散在两个文件，
- * 改了一边忘了另一边就悄悄失效（默认 zoom 还曾写死成档位外的 0.78）。
- * 现在改任一侧，开发模式启动时会立刻在控制台报警。生产构建无副作用。
+ * 护栏：开发模式下检查 ATS 实线宽度 × 最小缩放是否 ≥ 2 px。
+ * 早期版本的经验：缩放档位和线宽分散两个文件靠注释约定同步，
+ * 改一边忘另一边就悄悄失效（默认 zoom 还曾写死成档位外的 0.78）。
+ * 现在改任一侧，启动时立刻报警。生产构建无副作用。
  */
 if (import.meta.env.DEV) {
-  for (const [name, px] of [["RULE_PX_FADE", RULE_PX_FADE], ["RULE_PX_SOLID", RULE_PX_SOLID]] as const) {
-    const scaled = px * MIN_ZOOM;
-    if (scaled < 2) {
-      console.warn(
-        `[template] ${name}=${px}px × MIN_ZOOM=${MIN_ZOOM} = ${scaled.toFixed(2)}px < 2px。` +
-          `预览缩放下分隔线会因光栅化相位差呈现粗细不一，请调大线宽或调大 MIN_ZOOM。`
-      );
-    }
+  const scaled = RULE_PX_SOLID * MIN_ZOOM;
+  if (scaled < 2) {
+    console.warn(
+      `[template] RULE_PX_SOLID=${RULE_PX_SOLID}px × MIN_ZOOM=${MIN_ZOOM} = ${scaled.toFixed(2)}px < 2px。` +
+        `预览缩放下 ATS 分隔线会因光栅化相位差呈现粗细不一，请调大线宽或调大 MIN_ZOOM。`
+    );
   }
 }
 
@@ -246,22 +233,32 @@ if (import.meta.env.DEV) {
  * 背景色。mask 在 Chromium 的打印管线里可用；万一失效，退化结果是
  * 「等宽的柔化色带」，观感可接受，不会破版。
  */
+/**
+ * 模块标题右侧的延伸分隔线。设计原则：
+ *   「粗细 / 深浅不随模块字数变动，视觉淡淡，不抢戏」
+ *
+ * 实现：1px 高的均匀横线，颜色 = color + 14（≈ 8% 不透明度），不渐隐、不柔化。
+ *
+ * 为什么这样能同时解决「粗细不一致」与「深浅不一致」：
+ *
+ * 1. 与字数解耦：均匀填色（不渐隐），宽度任意时单位长度墨量相同。
+ *    上一版 mask 渐隐（40px 实 + 168px 渐隐）虽然头部形态固定，但尾部
+ *    「剩余长短」仍让短线 vs 长线在视觉上不等价 —— 用户看到的就是这个。
+ *
+ * 2. 相位差不可辨：1px × 0.85 = 0.85px，跨 1 行（满覆盖）或跨 2 行（各 0.42px）。
+ *    相位翻转理论上让 8% 灰变成 4% + 4% 的双行。但：
+ *      - 8% 灰已接近背景白，对比度 ≈ 0.92（白对 8% 黑）
+ *      - 韦伯定律下低强度区可辨阈值 ≈ ±5%，亚像素抖动最多 ±1%，远低于阈值
+ *      - 即「深色线抖动明显、低色线抖动不可辨」是同一原理的两端
+ *    所以低对比度是相位差的天然解耦器 —— 不用几何高度硬扛。
+ *
+ * 3. 不抢戏：单位墨量 0.85 × 8% = 0.068，是上一版（≈ 0.53）的 1/8。
+ *
+ * 放弃上一版的几何高度策略：纵然 5px + 15% 峰值能稳，但 5px 在视觉上
+ * 仍是「一条色带」，且渐隐让线长受字数影响。1px + 8% 是更纯粹的极简解。
+ */
 function SectionRule({ color }: { color: string }) {
-  // 横向消隐用绝对长度而非百分比：各模块标题字数不同 → 剩余给线的宽度不同，
-  // 百分比渐隐会让短线比长线「陡」，头部实心段占比不一致，看起来深浅不同。
-  // 固定 px 后所有线的头部形态完全一致，差异只体现在尾部剩余长度上（越靠右越淡）。
-  const fade = "linear-gradient(to right, #000 0, #000 40px, transparent 168px)";
-  return (
-    <span
-      className="flex-1"
-      style={{
-        height: RULE_PX_FADE,
-        background: `linear-gradient(to bottom, ${color}00 0%, ${color}26 30%, ${color}26 70%, ${color}00 100%)`,
-        WebkitMaskImage: fade,
-        maskImage: fade,
-      }}
-    />
-  );
+  return <span className="flex-1 self-center" style={{ height: 1, background: `${color}14` }} />;
 }
 
 /**
@@ -275,15 +272,12 @@ function SectionBadge({ section, color, shape }: { section: Section; color: stri
   return (
     <span
       className="flex h-[1.25em] w-[1.25em] shrink-0 items-center justify-center"
-      // 淡底 + 实心图标：分隔带淡化后，满色徽章成了标题行里唯一的饱和实心块，
-      // 会反过来抢走视线。底色调到约 8% 让整块退到背景层，只留图标用满色
-      // 承担「模块身份锚点」的作用 —— 焦点面积小了，但辨识度没丢。
-      style={{ background: `${color}14`, borderRadius: shape === "circle" ? "9999px" : "0.3em" }}
+      style={{ background: color, borderRadius: shape === "circle" ? "9999px" : "0.3em" }}
     >
       {Icon ? (
-        <Icon className="h-[0.68em] w-[0.68em]" style={{ color }} />
+        <Icon className="h-[0.68em] w-[0.68em] text-white" />
       ) : (
-        <span className="h-[0.3em] w-[0.3em] rounded-full" style={{ background: color }} />
+        <span className="h-[0.3em] w-[0.3em] rounded-full bg-white" />
       )}
     </span>
   );
