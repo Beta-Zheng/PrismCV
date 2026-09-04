@@ -8,6 +8,7 @@ import { cx, diffLines, fmtTime, timeAgo } from "../lib/utils";
 import { useApp } from "../lib/store";
 import { matchResumeData, parseJD } from "../lib/jd";
 import { SAMPLE_JD_TEXT } from "../lib/samples";
+import { celebrate } from "../lib/celebrate";
 import { Btn, Empty, ScoreBar, ScoreRing } from "./ui";
 import { IconCheck, IconEdit, IconEye, IconEyeOff, IconGrip, IconRefresh, IconSpark, IconTarget, IconWand, IconX, IconAlert, IconLock } from "./icons";
 
@@ -163,8 +164,14 @@ export function AIPanel({ resume, activeTarget }: { resume: Resume; activeTarget
       bullets: draft.bullets.split("\n"),
     };
     acceptSuggestion(s.id, edited);
+    celebrate();
     setEditing(false);
     setDraft(null);
+  };
+
+  const accept = (s: Suggestion) => {
+    acceptSuggestion(s.id);
+    celebrate();
   };
 
   return (
@@ -286,7 +293,7 @@ export function AIPanel({ resume, activeTarget }: { resume: Resume; activeTarget
                       <div className="flex flex-wrap gap-2 border-t border-ink-100 pt-2.5">
                         {!editing ? (
                           <>
-                            <Btn variant="primary" className="h-8" onClick={() => acceptSuggestion(active.id)}>
+                            <Btn variant="primary" className="h-8" onClick={() => accept(active)}>
                               <IconCheck size={13} /> 接受
                             </Btn>
                             <Btn variant="outline" className="h-8" onClick={() => startEdit(active)}>
@@ -391,6 +398,8 @@ export function JDPanel({ resume }: { resume: Resume }) {
     if (!jd) return;
     const r = matchResumeData(resume.data, jd);
     setReport(r);
+    // 高分匹配值得庆祝（celebrate 自带 reduced-motion 降级）
+    if (r.overall_score >= 75) celebrate();
   };
 
   if (!jd) {

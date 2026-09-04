@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { cx } from "../lib/utils";
 import { useApp } from "../lib/store";
 import { IconAlert, IconCheck, IconInfo, IconX } from "./icons";
@@ -14,7 +15,7 @@ export function Btn({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant }) {
   const styles: Record<BtnVariant, string> = {
-    primary: "bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-900/20",
+    primary: "bg-brand-gradient text-white shadow-md shadow-brand-900/25 hover:-translate-y-px hover:shadow-lg hover:shadow-brand-900/30",
     dark: "bg-ink-900 text-paper-50 hover:bg-ink-800",
     ghost: "text-ink-600 hover:bg-ink-900/5 hover:text-ink-900",
     outline: "border border-ink-200 bg-white/70 text-ink-800 hover:border-ink-300 hover:bg-white",
@@ -59,12 +60,26 @@ export function Modal({
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="anim-fade-in absolute inset-0 bg-ink-950/55 backdrop-blur-[2px]" onClick={onClose} />
-      <div className={cx("anim-scale-in relative w-full overflow-hidden rounded-xl bg-paper-25 shadow-2xl shadow-ink-950/30 ring-1 ring-ink-900/10", width)}>
-        {bare ? children : <div className="max-h-[86vh] overflow-y-auto">{children}</div>}
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="absolute inset-0 bg-ink-950/55 backdrop-blur-[2px]"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
+          exit={{ opacity: 0, scale: 0.97, y: 4, transition: { duration: 0.15, ease: "easeIn" } }}
+          className={cx("relative w-full overflow-hidden rounded-xl bg-paper-25 shadow-2xl shadow-ink-950/30 ring-1 ring-ink-900/10", width)}
+        >
+          {bare ? children : <div className="max-h-[86vh] overflow-y-auto">{children}</div>}
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 }
 
@@ -212,15 +227,24 @@ export function ToastHost() {
   };
   return (
     <div className="pointer-events-none fixed right-4 top-4 z-[70] flex w-80 flex-col gap-2">
-      {toasts.map((t) => (
-        <div key={t.id} className={cx("anim-slide-left pointer-events-auto flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[12.5px] font-medium shadow-lg shadow-ink-950/10", toneOf[t.kind])}>
-          <span className="mt-0.5 shrink-0">{iconOf[t.kind]}</span>
-          <span className="min-w-0 flex-1 leading-snug">{t.msg}</span>
-          <button onClick={() => dismiss(t.id)} className="shrink-0 opacity-50 transition hover:opacity-100" aria-label="关闭提示">
-            <IconX size={12} />
-          </button>
-        </div>
-      ))}
+      <AnimatePresence initial={false}>
+        {toasts.map((t) => (
+          <motion.div
+            key={t.id}
+            layout
+            initial={{ opacity: 0, x: 32 }}
+            animate={{ opacity: 1, x: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, x: 32, transition: { duration: 0.18, ease: "easeIn" } }}
+            className={cx("pointer-events-auto flex items-start gap-2 rounded-lg border px-3 py-2.5 text-[12.5px] font-medium shadow-lg shadow-ink-950/10", toneOf[t.kind])}
+          >
+            <span className="mt-0.5 shrink-0">{iconOf[t.kind]}</span>
+            <span className="min-w-0 flex-1 leading-snug">{t.msg}</span>
+            <button onClick={() => dismiss(t.id)} className="shrink-0 opacity-50 transition hover:opacity-100" aria-label="关闭提示">
+              <IconX size={12} />
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

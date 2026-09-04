@@ -173,11 +173,22 @@ export function resolveBulletStyle(sectionStyle?: BulletStyleKey, themeDefault?:
   return sectionStyle ?? themeDefault ?? "diamond";
 }
 
+/** 要点与「是否显示列表符号」勾选标记的配对视图：过滤空要点。
+ *  marks 缺省 / 越界一律视为显示 —— 历史数据与 AI 生成内容无需迁移即默认全带符号。 */
+export function bulletPairs(bullets: string[], marks?: boolean[]): Array<{ text: string; marked: boolean }> {
+  return bullets
+    .map((text, i) => ({ text, marked: marks?.[i] ?? true }))
+    .filter((p) => p.text);
+}
+
 /* ---------------- 行内富文本（要点 / 描述） ---------------- */
 
-/** 判断字符串是否已是富文本 HTML（而非 ** 标记或纯文本） */
+/** 判断字符串是否已是富文本 HTML（而非 ** 标记或纯文本）。
+ *  必须检测「任意」标签而非仅行内白名单：存储值可能含 <ul>/<li> 等块级标签
+ *  （AI 建议返回列表、用户从网页粘贴）。若此处漏判，renderRich 会走纯文本分支
+ *  把标签原样显示出来 —— 曾导致「个人总结描述显示出一堆 <ul style=...>」的线上 bug。 */
 export function isRichHtml(s: string): boolean {
-  return /<(b|strong|i|em|u|br|span|div|p)\b/i.test(s);
+  return /<[a-zA-Z/][^>]*>/.test(s);
 }
 
 /** 去除所有 HTML 标签，保留纯文本（用于卡片预览 / JD 匹配） */
@@ -186,30 +197,91 @@ export function stripHtml(s: string): string {
   return s.replace(/<[^>]+>/g, "");
 }
 
-/** 仅保留白名单内的行内标签，剥离全部属性，防止富文本注入破坏文档 */
+/** 仅保留白名单内的行内标签，剥离全部属性，防止富文本注入破坏文档。
+ *  块级标签不是简单剥离（否则多个 <li> 的文本会粘成一团）：
+ *  - <li>：转为换行；若父级是 <ol>，每行加「1. 2. 3.」序号前缀（对应「有序号列表」的预期）
+ *  - <p>/<div>：转为换行
+ *  - 其余块级标签（ul/ol/table/h1-6/…）：消毒子节点后原地展开
+ *  块级行的分隔规则统一为「前置 <br>」：仅当前面存在实质内容（元素或非空白文本）
+ *  时补换行 —— 行标记跟着新行走，尾部天然不会多出空行（配合 trimRichTail）。
+ *  - 行内未知标签（font/a/mark/…）：原地展开、不补换行
+ *  这样历史脏数据（AI 返回的列表、带内联样式的粘贴内容）在预览端直接显示为干净的分行文本。 */
 export function sanitizeInline(html: string): string {
   if (typeof document === "undefined") return html;
+  // 历史数据修复：外部页面复制粘贴曾带入损坏的属性残留，以纯文本形式存在于标签之间
+  // （如 "child-style="scrollbar-color: …">）。注意 contentEditable 序列化后会以 &gt; 实体
+  // 形式存回（无字面 >），两种形态都要覆盖，否则标签剥离后垃圾文本仍会显示。
+  const cleaned = html.replace(/"?child-style="[^"]*"?(?:&gt;|>)?/g, "");
   const allowed = /^(b|strong|i|em|u|br|span)$/i;
-  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
-  const walk = (node: Element) => {
+  const blockUnwrap = /^(ul|ol|table|thead|tbody|tfoot|tr|h[1-6]|blockquote|pre|section|article|header|footer|figure)$/i;
+  const doc = new DOMParser().parseFromString(`<body>${cleaned}</body>`, "text/html");
+  // ol 内 li 的序号计数：兄弟 li 会被陆续替换为文本节点（不再出现在 children 里），
+  // 不能用 indexOf 现算 —— 必须在处理前按访问顺序递增计数
+  const olCounters = new WeakMap<Element, number>();
+  /** 前面是否还有实质内容（元素或非空白文本）。决定块级行是否需要前置 <br>：
+   *  Chrome 的 contentEditable 把「回车分行」存成 `首行文本<div>次行</div>`，
+   *  行分隔标记在 div 上 —— 因此 <br> 必须跟着「新行」前置，而不是给旧行补尾。 */
+  const hasMeaningfulPrev = (node: Node): boolean => {
+    let prev = node.previousSibling;
+    while (prev) {
+      if (prev.nodeType === 1) return true;
+      if (prev.nodeType === 3 && /[^\s]/.test(prev.textContent || "")) return true;
+      prev = prev.previousSibling;
+    }
+    return false;
+  };
+
+  const transform = (node: Element) => {
     [...node.children].forEach((child) => {
-      if (!allowed.test(child.tagName)) {
-        child.replaceWith(...Array.from(child.childNodes));
-      } else {
+      const tag = child.tagName.toLowerCase();
+      if (allowed.test(tag)) {
         [...child.attributes].forEach((a) => child.removeAttribute(a.name));
-        walk(child);
+        transform(child);
+        return;
       }
+      if (tag === "li" || tag === "p" || tag === "div") {
+        const parent = child.parentElement;
+        const numbered = tag === "li" && parent && parent.tagName.toLowerCase() === "ol";
+        let index = 0;
+        if (numbered) {
+          index = (olCounters.get(parent) ?? 0) + 1;
+          olCounters.set(parent, index);
+        }
+        transform(child);
+        const frag = doc.createDocumentFragment();
+        if (hasMeaningfulPrev(child)) frag.appendChild(doc.createElement("br"));
+        if (numbered) frag.appendChild(doc.createTextNode(`${index}. `));
+        while (child.firstChild) frag.appendChild(child.firstChild);
+        child.replaceWith(frag);
+        return;
+      }
+      transform(child);
+      const frag = doc.createDocumentFragment();
+      if (blockUnwrap.test(tag) && hasMeaningfulPrev(child)) frag.appendChild(doc.createElement("br"));
+      while (child.firstChild) frag.appendChild(child.firstChild);
+      child.replaceWith(frag);
     });
   };
-  walk(doc.body);
-  return doc.body.innerHTML;
+  transform(doc.body);
+  return trimRichTail(doc.body.innerHTML);
 }
 
-/** 把存储值转成编辑器初始 HTML：已是 HTML 则原样，否则把 **加粗** 转成 <strong> */
+/** 修剪富文本 HTML 末尾夹带的换行与空白（<br>、&nbsp;、空格/制表符）。
+ *  用户输入/粘贴常在结尾带回车或空行，直接渲染会在简历上多出空行。 */
+function trimRichTail(html: string): string {
+  return html.replace(/(?:\s|&nbsp;|<br\s*\/?>)+$/gi, "");
+}
+
+/** 把存储值转成编辑器初始 HTML：已是 HTML 则消毒（剥离块级标签与全部属性，
+ *  历史脏数据借此在编辑器内自愈），否则把 **加粗** 转成 <strong>。
+ *  纯文本值中的换行符转成 <br>，编辑器内才能可见地分行（contentEditable 会
+ *  把裸 \n 折叠成空格）；末尾换行/空白一并修剪。 */
 export function prepEditorHtml(value: string): string {
-  if (isRichHtml(value)) return value;
-  return value
+  const trimmed = value.replace(/[\s\u00a0]+$/, "");
+  if (isRichHtml(trimmed)) return sanitizeInline(trimmed);
+  return trimmed
     .split("**")
     .map((seg, i) => (i % 2 === 1 && seg.length > 0 ? `<strong>${seg}</strong>` : seg))
-    .join("");
+    .join("")
+    .replace(/\r?\n/g, "<br>");
 }

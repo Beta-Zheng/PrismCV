@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { cx } from "./lib/utils";
 import { useApp, type View } from "./lib/store";
 import { ToastHost } from "./components/ui";
@@ -52,10 +53,10 @@ function NavItem({ active, onClick, icon, label }: { active: boolean; onClick: (
       onClick={onClick}
       className={cx(
         "group relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
-        active ? "bg-ink-800 text-paper-50" : "text-ink-300 hover:bg-ink-850 hover:text-paper-100"
+        active ? "bg-gradient-to-r from-brand-600/30 to-ink-800 text-paper-50 shadow-[inset_0_0_0_1px_rgb(59_163_146/0.25)]" : "text-ink-300 hover:bg-ink-850 hover:text-paper-100"
       )}
     >
-      {active && <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-brand-400" />}
+      {active && <span className="shadow-brand-glow absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-brand-400" />}
       <span className={cx("transition-colors", active ? "text-brand-300" : "text-ink-400 group-hover:text-brand-300")}>{icon}</span>
       {label}
     </button>
@@ -85,10 +86,10 @@ function AppShell() {
 
   return (
     <div id="app-root" className="flex h-screen overflow-hidden bg-paper-100">
-      {/* 侧边导航 */}
-      <nav className="flex w-[196px] shrink-0 flex-col border-r border-ink-800 bg-ink-900">
+      {/* 侧边导航：ink 纵向渐变拉开层次，顶部略深 */}
+      <nav className="flex w-[196px] shrink-0 flex-col border-r border-ink-800 bg-gradient-to-b from-ink-950 via-ink-900 to-ink-900">
         <div className="flex items-center gap-2.5 px-4 pb-5 pt-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white shadow-lg shadow-brand-900/40">
+          <span className="bg-brand-gradient shadow-brand-glow flex h-9 w-9 items-center justify-center rounded-lg text-white">
             <IconLogo size={19} />
           </span>
           <div>
@@ -120,14 +121,22 @@ function AppShell() {
         </div>
       </nav>
 
-      {/* 主区域 */}
+      {/* 主区域：页面切换时淡入上移（AnimatePresence 处理退场），布局类移到 motion.div 保持各页 h-full 语义 */}
       <main className="min-w-0 flex-1 overflow-hidden">
-        <div className={cx("h-full overflow-y-auto", view.name === "editor" && "overflow-hidden")}>
-          {view.name === "home" && <Home />}
-          {view.name === "editor" && <Editor resumeId={view.resumeId} />}
-          {view.name === "models" && <Models />}
-          {view.name === "settings" && <Settings />}
-        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={view.name}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.12, ease: "easeIn" } }}
+            className={cx("h-full overflow-y-auto", view.name === "editor" && "overflow-hidden")}
+          >
+            {view.name === "home" && <Home />}
+            {view.name === "editor" && <Editor resumeId={view.resumeId} />}
+            {view.name === "models" && <Models />}
+            {view.name === "settings" && <Settings />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <ToastHost />

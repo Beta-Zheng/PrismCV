@@ -31,6 +31,8 @@ export interface BasicInfo {
   phone: string;
   location: string;
   website: string;
+  /** 自定义信息项：固定六项之外的补充（如 期望薪资、政治面貌），随联系方式一行渲染 */
+  custom_fields?: Array<{ label: string; value: string }>;
 }
 
 /** 通用 Block 结构（§11.3） */
@@ -44,6 +46,10 @@ export interface Block {
   location: string;
   description: string;
   bullets: string[];
+  /** 与 bullets 平行的「是否显示列表符号」勾选标记；缺省 / 越界视为显示（兼容历史数据与 AI 生成） */
+  bullet_marks?: boolean[];
+  /** 追加副标题段：与 subtitle 合并后用 · 分隔渲染（subtitle 为首段，兼容历史数据） */
+  subtitles?: string[];
   skills: string[];
   links: string[];
   visible: boolean;
@@ -74,18 +80,21 @@ export interface ResumeData {
 export type FontKey = "sans" | "serif" | "system" | "kai" | "mono" | "fangsong";
 export type DensityKey = "compact" | "medium" | "loose";
 export type HeaderLayoutKey = "row" | "stack";
-export type BulletStyleKey = "disc" | "diamond" | "arrow" | "ordered";
+export type BulletStyleKey = "disc" | "diamond" | "arrow" | "ordered" | "square" | "check" | "circle";
 
 /** 要点列表可选样式（编辑器与预览共用一份定义，避免两处不一致） */
 export const BULLET_STYLE_OPTIONS: Array<{ key: BulletStyleKey; label: string; sample: string }> = [
   { key: "diamond", label: "菱形", sample: "◆" },
   { key: "disc", label: "圆点", sample: "●" },
+  { key: "square", label: "方块", sample: "▪" },
+  { key: "circle", label: "空心圆", sample: "○" },
   { key: "arrow", label: "箭头", sample: "→" },
+  { key: "check", label: "对勾", sample: "✓" },
   { key: "ordered", label: "有序", sample: "1." },
 ];
 
 /** 支持要点列表的模块类型（其余模块不展示要点样式开关） */
-export const BULLET_CAPABLE_SECTIONS: SectionType[] = ["work_experience", "project_experience", "education", "custom"];
+export const BULLET_CAPABLE_SECTIONS: SectionType[] = ["work_experience", "project_experience", "education", "custom", "summary"];
 
 export interface Resume {
   id: string;
@@ -103,6 +112,8 @@ export interface Resume {
     header_layout?: HeaderLayoutKey;
     /** 要点列表样式：disc=圆点 / diamond=菱形 / arrow=箭头 / ordered=有序数字 */
     bullet_style?: BulletStyleKey;
+    /** 头像显示比例：基于 1 寸照基准尺寸的倍数（0.5–2，缺省 1）；仅展示头像的模板生效 */
+    avatar_scale?: number;
   };
   created_at: string;
   updated_at: string;

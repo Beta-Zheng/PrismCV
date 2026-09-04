@@ -4,10 +4,10 @@
  * 现代单栏 / 经典 ATS 共用一套条目与模块渲染（EntryBody / SectionBlock），
  * 仅通过 TStyle 风格参数区分视觉，避免两份代码分叉导致字段遗漏（如 location）。
  * ------------------------------------------------------------------ */
-import type { CSSProperties, ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import type { Block, Resume, Section, SectionType, HeaderLayoutKey, BulletStyleKey } from "../types";
-import { cx, fontStack, densityVars, isRichHtml, resolveBulletStyle, sanitizeInline } from "../lib/utils";
-import { IconArrowRight, IconAward, IconBriefcase, IconFolderGit, IconGraduationCap, IconLayers, IconUser, IconWrench } from "./icons";
+import { cx, fontStack, densityVars, isRichHtml, resolveBulletStyle, sanitizeInline, bulletPairs } from "../lib/utils";
+import { IconArrowRight, IconAward, IconBriefcase, IconCheck, IconFolderGit, IconGraduationCap, IconLayers, IconUser, IconWrench } from "./icons";
 
 function orderedVisible(data: Resume["data"]): Section[] {
   return [...data.sections].filter((s) => s.visible).sort((a, b) => a.order - b.order);
@@ -23,6 +23,44 @@ function dateRange(b: Block): string {
   const e = b.end_date || "";
   if (s && e) return `${s} – ${e}`;
   return s || e; // 仅 start 或仅 end 时直接返回，避免前导 " – " 横线
+}
+
+/** 条目副标题全部段：subtitle 为首段（历史字段），subtitles 为追加段，空段过滤 */
+function subtitleParts(b: Block): string[] {
+  return [b.subtitle, ...(b.subtitles ?? [])].filter(Boolean);
+}
+
+/** 联系方式项：固定四项 + 自定义信息项（label：value），自定义项两者都有内容才显示 */
+function contactItems(info: Resume["data"]["basic_info"]): string[] {
+  const base = [info.email, info.phone, info.location, info.website].filter(Boolean);
+  const extra = (info.custom_fields ?? [])
+    .map((f) => [f.label?.trim(), f.value?.trim()].filter(Boolean).join("："))
+    .filter(Boolean);
+  return [...base, ...extra];
+}
+
+/** 头像盒子尺寸：1 寸照基准（w×h px）× avatar_scale（钳制 0.5–2） */
+function avatarBox(scale: number | undefined, w: number, h: number): CSSProperties {
+  const s = Math.min(2, Math.max(0.5, scale ?? 1));
+  return { width: `${Math.round(w * s)}px`, height: `${Math.round(h * s)}px` };
+}
+
+/** 标题后副标题串（历史 subtitle 首段 + 追加段），段间一律以 · 分隔 */
+function SubTitles({ block, className }: { block: Block; className?: string }) {
+  const parts = subtitleParts(block);
+  if (parts.length === 0) return null;
+  return (
+    <span className={className}>
+      {parts.map((p, i) => (
+        <span key={i}>
+          <span className="mx-1.5 text-ink-300" aria-hidden="true">
+            ·
+          </span>
+          {renderRich(p)}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /**
@@ -51,11 +89,25 @@ function InlineHtml({ html }: { html: string }) {
 }
 function renderRich(text: string): ReactNode {
   if (!text) return null;
-  if (isRichHtml(text)) return <InlineHtml html={text} />;
-  const segs = text.split("**");
-  return segs.map((seg, i) =>
-    i % 2 === 1 && seg.length > 0 ? <strong key={i}>{seg}</strong> : <span key={i}>{seg}</span>
-  );
+  // 末尾夹带的换行/空格不渲染（用户输入/粘贴常带回车尾巴，会在简历上多出空行）
+  const trimmed = text.replace(/[\s\u00a0]+$/, "");
+  if (isRichHtml(trimmed)) return <InlineHtml html={trimmed} />;
+  const segs = trimmed.split("**");
+  return segs.map((seg, i) => {
+    if (i % 2 === 1 && seg.length > 0) return <strong key={i}>{seg}</strong>;
+    // 纯文本值中的换行符渲染为 <br>（contentEditable 存储与纯文本数据统一处理）
+    const lines = seg.split(/\r?\n/);
+    return (
+      <span key={i}>
+        {lines.map((ln, j) => (
+          <Fragment key={j}>
+            {j > 0 && <br />}
+            {ln}
+          </Fragment>
+        ))}
+      </span>
+    );
+  });
 }
 
 interface TStyle {
@@ -68,68 +120,79 @@ interface TStyle {
   headerLayout: HeaderLayoutKey;
 }
 
-/** 根据 bullet_style 渲染一条要点 */
+/** 根据 bullet_style 渲染一条要点；marks[i]=false 的条目不渲染符号（无占位），
+ *  有序样式序号只数勾选条目（不留空洞）。 */
 function BulletList({
   bullets,
+  marks,
   bulletStyle,
   color,
   isATS,
 }: {
   bullets: string[];
+  marks?: boolean[];
   bulletStyle: BulletStyleKey;
   color: string;
   isATS?: boolean;
 }) {
-  const renderItem = (bl: string, i: number) => (
-    <li key={i} className="flex gap-[0.6em] break-inside-avoid text-[0.92em]" style={{ color: isATS ? "#222" : "#2b3a36" }}>
-      <span className={cx("shrink-0 leading-none", bulletStyle === "ordered" ? "mt-[0.15em]" : "mt-[0.52em]")}>
-        {bulletStyle === "ordered" ? (
-          <span className="inline-block min-w-[1.35em] text-right font-mono text-[0.86em] font-bold tabular-nums" style={{ color: isATS ? "#111" : color }}>
-            {i + 1}.
+  const pairs = bulletPairs(bullets, marks);
+  let seq = 0;
+  const renderItem = ({ text, marked }: { text: string; marked: boolean }) => {
+    const num = marked ? ++seq : 0;
+    return (
+      <li key={num > 0 ? `m${num}` : `u${num}-${text}`} className="flex gap-[0.6em] break-inside-avoid text-[0.92em]" style={{ color: isATS ? "#222" : "#2b3a36" }}>
+        {marked && (
+          <span className={cx("shrink-0 leading-none", bulletStyle === "ordered" ? "mt-[0.15em]" : "mt-[0.52em]")}>
+            {bulletStyle === "ordered" ? (
+              <span className="inline-block min-w-[1.35em] text-right font-mono text-[0.86em] font-bold tabular-nums" style={{ color: isATS ? "#111" : color }}>
+                {num}.
+              </span>
+            ) : bulletStyle === "disc" ? (
+              <span className="block h-[5px] w-[5px] rounded-full" style={{ background: isATS ? "#111" : color }} />
+            ) : bulletStyle === "arrow" ? (
+              <IconArrowRight size={11} style={{ color: isATS ? "#111" : color }} />
+            ) : bulletStyle === "square" ? (
+              <span className="block h-[5px] w-[5px]" style={{ background: isATS ? "#111" : color }} />
+            ) : bulletStyle === "check" ? (
+              <IconCheck size={11} style={{ color: isATS ? "#111" : color }} />
+            ) : bulletStyle === "circle" ? (
+              <span className="block h-[6px] w-[6px] rounded-full border-[1.5px]" style={{ borderColor: isATS ? "#111" : color }} />
+            ) : (
+              <span className="block h-[5px] w-[5px] rotate-45" style={{ background: isATS ? "#111" : color }} />
+            )}
           </span>
-        ) : bulletStyle === "disc" ? (
-          <span className="block h-[5px] w-[5px] rounded-full" style={{ background: isATS ? "#111" : color }} />
-        ) : bulletStyle === "arrow" ? (
-          <IconArrowRight size={11} style={{ color: isATS ? "#111" : color }} />
-        ) : (
-          <span className="block h-[5px] w-[5px] rotate-45" style={{ background: isATS ? "#111" : color }} />
         )}
-      </span>
-      <span className="flex-1">{renderRich(bl)}</span>
-    </li>
-  );
+        <span className="flex-1">{renderRich(text)}</span>
+      </li>
+    );
+  };
 
   const cls = "mt-[var(--entry-gap)] flex list-none flex-col gap-[var(--bullet-gap)] pl-0";
   if (bulletStyle === "ordered") {
-    return <ol className={cls}>{bullets.map((bl, i) => renderItem(bl, i))}</ol>;
+    return <ol className={cls}>{pairs.map((p) => renderItem(p))}</ol>;
   }
-  return <ul className={cls}>{bullets.map((bl, i) => renderItem(bl, i))}</ul>;
+  return <ul className={cls}>{pairs.map((p) => renderItem(p))}</ul>;
 }
 
 function EntryBody({ block, style }: { block: Block; style: TStyle }) {
   const { color, isATS, skill, showLocation, headerLayout, bulletStyle } = style;
   const bullets = block.bullets.filter(Boolean);
   const hasContent =
-    block.title || block.subtitle || block.description || bullets.length > 0 || block.skills.length > 0 || (showLocation && block.location);
+    block.title || block.subtitle || block.subtitles?.length || block.description || bullets.length > 0 || block.skills.length > 0 || (showLocation && block.location);
   if (!hasContent) return null;
   return (
     <div className="mb-[var(--entry-gap)] break-inside-avoid">
-      {(block.title || block.subtitle) &&
+      {(block.title || subtitleParts(block).length > 0) &&
         (headerLayout === "stack" ? (
           <p className="text-[1em] font-bold text-ink-900">
             {renderRich(block.title)}
-            {block.subtitle && <span className="ml-1.5 font-normal text-ink-500">{renderRich(block.subtitle)}</span>}
+            <SubTitles block={block} className="ml-1.5 font-normal text-ink-500" />
           </p>
         ) : (
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-[1.02em] font-bold leading-snug text-ink-900">
               {renderRich(block.title)}
-              {block.subtitle && (
-                <span className="font-normal text-ink-500">
-                  <span className="mx-1.5 text-ink-300">·</span>
-                  {renderRich(block.subtitle)}
-                </span>
-              )}
+              <SubTitles block={block} className="font-normal text-ink-500" />
             </p>
             {dateRange(block) && (
               <p className="shrink-0 text-[0.82em] font-medium tabular-nums" style={{ color: isATS ? "#222" : "#64716c" }}>
@@ -152,7 +215,7 @@ function EntryBody({ block, style }: { block: Block; style: TStyle }) {
       {block.description && (
         <p className={cx("mt-[var(--entry-gap)] whitespace-pre-line text-[0.92em] leading-relaxed", isATS ? "text-[#222]" : "text-ink-700")}>{renderRich(block.description)}</p>
       )}
-      {bullets.length > 0 && <BulletList bullets={bullets} bulletStyle={bulletStyle} color={color} isATS={isATS} />}
+      {bullets.length > 0 && <BulletList bullets={bullets} marks={block.bullet_marks} bulletStyle={bulletStyle} color={color} isATS={isATS} />}
       {block.skills.length > 0 &&
         (skill === "text" ? (
           <p className="mt-[var(--entry-gap)] text-[0.9em]" style={{ color: isATS ? "#333" : undefined }}>
@@ -285,7 +348,7 @@ function SectionBadge({ section, color, shape }: { section: Section; color: stri
 
 function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
   const blocks = visibleBlocks(section);
-  if (section.type === "summary" && !blocks.some((b) => b.description)) return null;
+  if (section.type === "summary" && !blocks.some((b) => b.description || b.bullets.some(Boolean))) return null;
   if (blocks.length === 0 && section.type !== "summary") return null;
   const { color, isATS } = style;
   // 模块级要点样式优先，未设置时继承全局默认
@@ -313,7 +376,7 @@ function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
 
 function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { section: Section; color: string; headerLayout: HeaderLayoutKey; bulletStyle: BulletStyleKey }) {
   const blocks = visibleBlocks(section);
-  if (section.type === "summary" && !blocks.some((b) => b.description)) return null;
+  if (section.type === "summary" && !blocks.some((b) => b.description || b.bullets.some(Boolean))) return null;
   if (blocks.length === 0 && section.type !== "summary") return null;
   // 模块级要点样式优先，未设置时继承全局默认
   const bs = resolveBulletStyle(section.bullet_style, bulletStyle);
@@ -326,22 +389,17 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
       </h2>
       {blocks.map((b) => (
         <div key={b.block_id} className="mb-[var(--entry-gap)] break-inside-avoid">
-          {(b.title || b.subtitle) &&
+          {(b.title || subtitleParts(b).length > 0) &&
             (headerLayout === "stack" ? (
               <p className="text-[1em] font-bold text-ink-900">
                 {renderRich(b.title)}
-                {b.subtitle && <span className="ml-1.5 font-normal text-ink-500">{renderRich(b.subtitle)}</span>}
+                <SubTitles block={b} className="ml-1.5 font-normal text-ink-500" />
               </p>
             ) : (
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-[1.02em] font-bold leading-snug text-ink-900">
                   {renderRich(b.title)}
-                  {b.subtitle && (
-                    <span className="font-normal text-ink-500">
-                      <span className="mx-1.5 text-ink-300">·</span>
-                      {renderRich(b.subtitle)}
-                    </span>
-                  )}
+                  <SubTitles block={b} className="font-normal text-ink-500" />
                 </p>
                 <div className="shrink-0 text-right text-[0.82em] font-medium tabular-nums" style={{ color: "#64716c" }}>
                   {dateRange(b) && <span>{dateRange(b)}</span>}
@@ -358,7 +416,7 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
           {b.description && (
             <p className="mt-[var(--entry-gap)] whitespace-pre-line text-[0.92em] leading-relaxed text-ink-700">{renderRich(b.description)}</p>
           )}
-          {b.bullets.filter(Boolean).length > 0 && <BulletList bullets={b.bullets.filter(Boolean)} bulletStyle={bs} color={color} />}
+          {b.bullets.filter(Boolean).length > 0 && <BulletList bullets={b.bullets.filter(Boolean)} marks={b.bullet_marks} bulletStyle={bs} color={color} />}
           {b.skills.length > 0 && (
             <div className="mt-[var(--entry-gap)] flex flex-wrap gap-1">
               {b.skills.map((sk) => (
@@ -382,7 +440,7 @@ function AcademicPhotoSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
   const color = resume.theme.primary_color;
   const fs = resume.theme.font_size;
   const info = resume.data.basic_info;
-  const contacts = [info.email, info.phone, info.location, info.website].filter(Boolean);
+  const contacts = contactItems(info);
   const basicSection = resume.data.sections.find((s) => s.type === "basic_info");
   const basicVisible = basicSection?.visible ?? true;
   const bodySections = orderedVisible(resume.data).filter((s) => s.type !== "basic_info");
@@ -395,9 +453,9 @@ function AcademicPhotoSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
     >
       {basicVisible && (
         <header className="mb-[var(--sec-gap)] flex items-center gap-5">
-          {/* 头像：矩形无边框，约 1 寸（25×35mm）照片比例；缺省时不占位，姓名/联系自然左铺 */}
+          {/* 头像：矩形无边框，基准约 1 寸（25×35mm）照片比例，尺寸随 theme.avatar_scale 缩放；缺省时不占位 */}
           {resume.data.avatar_url && (
-            <div className="h-[126px] w-[90px] shrink-0 overflow-hidden rounded-sm bg-paper-100">
+            <div className="shrink-0 overflow-hidden rounded-sm bg-paper-100" style={avatarBox(resume.theme.avatar_scale, 90, 126)}>
               <img src={resume.data.avatar_url} alt="头像" className="h-full w-full object-cover" />
             </div>
           )}
@@ -451,7 +509,7 @@ export function ResumeSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
   const basicSection = resume.data.sections.find((s) => s.type === "basic_info");
   const basicVisible = basicSection?.visible ?? true;
   const info = resume.data.basic_info;
-  const contacts = [info.email, info.phone, info.location, info.website].filter(Boolean);
+  const contacts = contactItems(info);
 
   const style: TStyle = isATS
     ? { color: "#111111", isATS: true, bullet: "disc", bulletStyle: resume.theme.bullet_style ?? "disc", skill: "text", showLocation: true, headerLayout: resume.theme.header_layout ?? "row" }
@@ -491,7 +549,7 @@ export function ResumeSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
             </div>
             {/* 已上传头像时直接使用头像，否则用姓名首字母色块，保持右上角视觉锚点 */}
             {resume.data.avatar_url ? (
-              <div className="mb-1 h-[58px] w-[42px] shrink-0 overflow-hidden rounded-md bg-paper-100">
+              <div className="mb-1 shrink-0 overflow-hidden rounded-md bg-paper-100" style={avatarBox(resume.theme.avatar_scale, 42, 58)}>
                 <img src={resume.data.avatar_url} alt="头像" className="h-full w-full object-cover" />
               </div>
             ) : (

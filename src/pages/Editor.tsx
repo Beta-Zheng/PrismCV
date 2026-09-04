@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -312,9 +313,28 @@ export default function Editor({ resumeId }: { resumeId: string }) {
             </MenuSection>
           )}
 
+          {resume.template_id !== "classic_ats" && (
+            <MenuSection title="头像大小">
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={0.5}
+                  max={2}
+                  step={0.1}
+                  value={resume.theme.avatar_scale ?? 1}
+                  onChange={(e) => app.setTheme(resumeId, { avatar_scale: Number(e.target.value) })}
+                  className="h-1 min-w-0 flex-1 accent-brand-600"
+                  aria-label="头像显示比例"
+                />
+                <span className="w-10 shrink-0 text-right font-mono text-[11px] text-ink-500">{(resume.theme.avatar_scale ?? 1).toFixed(1)}×</span>
+              </div>
+              <p className="mt-1 text-[11px] leading-snug text-ink-400">基于 1 寸照（25×35mm）基准按比例缩放，0.5×–2.0×；未上传头像时无效。</p>
+            </MenuSection>
+          )}
+
           <MenuSection title="要点列表">
             <p className="rounded-lg bg-paper-100 px-2 py-1.5 text-[11px] leading-snug text-ink-500">
-              已改为<strong className="font-semibold text-ink-700">按模块设置</strong>：在中间栏各模块的「要点」编辑区右上角切换（有序 / 圆点 / 菱形 / 箭头）。
+              已改为<strong className="font-semibold text-ink-700">按模块设置</strong>：在中间栏各模块的「要点」编辑区右上角切换（菱形 / 圆点 / 方块 / 空心圆 / 箭头 / 对勾 / 有序），每条要点可点行首符号单独开关。
             </p>
           </MenuSection>
         </ToolbarMenu>
@@ -324,7 +344,7 @@ export default function Editor({ resumeId }: { resumeId: string }) {
           <Btn variant="outline" className="h-8 text-[12px]" onClick={() => setAddSecOpen(true)}>
             <IconPlus size={13} /> 添加模块
           </Btn>
-          <Btn variant="dark" className="h-8 text-[12px]" onClick={() => setPreviewOpen(true)}>
+          <Btn variant="primary" className="h-8 text-[12px]" onClick={() => setPreviewOpen(true)}>
             <IconPrinter size={13} /> 预览 / 导出 PDF
           </Btn>
         </div>
@@ -361,7 +381,7 @@ export default function Editor({ resumeId }: { resumeId: string }) {
             ).map(([k, label, icon]) => (
               <button key={k} onClick={() => setPanelTab(k)} className={cx("relative flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[12.5px] font-bold transition", panelTab === k ? "text-brand-700" : "text-ink-400 hover:text-ink-700")}>
                 {icon} {label}
-                {panelTab === k && <span className="absolute inset-x-6 bottom-0 h-0.5 rounded-full bg-brand-600" />}
+                {panelTab === k && <motion.span layoutId="editor-panel-tab-underline" transition={{ type: "spring", stiffness: 420, damping: 34 }} className="absolute inset-x-6 bottom-0 h-0.5 rounded-full bg-brand-600" />}
               </button>
             ))}
           </div>

@@ -422,7 +422,7 @@ export const useApp = create<AppState>()(
               ...sec,
               blocks: sec.blocks.map((b) =>
                 b.block_id === sug.block_id
-                  ? { ...b, title: content.title, subtitle: content.subtitle, start_date: content.start_date, end_date: content.end_date, location: content.location, description: content.description, bullets: content.bullets, skills: content.skills, links: content.links }
+                  ? { ...b, title: content.title, subtitle: content.subtitle, start_date: content.start_date, end_date: content.end_date, location: content.location, description: content.description, bullets: content.bullets, skills: content.skills, links: content.links, bullet_marks: undefined }
                   : b
               ),
             }))

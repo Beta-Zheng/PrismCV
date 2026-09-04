@@ -99,6 +99,38 @@ body {
   pointer-events: none;
 }
 
+/* ---------- brand utilities ---------- */
+/* 墨绿主渐变：Logo / 主按钮 / 激活态共用一个方向与端点色，保证全局一致 */
+.bg-brand-gradient {
+  background-image: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400));
+}
+.shadow-brand-glow {
+  box-shadow: 0 0 0 1px var(--color-brand-600), 0 4px 16px -4px rgb(14 122 108 / 0.45);
+}
+
+/* 统一键盘焦点环：全站所有可交互元素可见焦点（不改元素自身圆角） */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+/* 上传卡拖入时的流动边框：conic-gradient 旋转（Chromium 支持 @property） */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes border-flow {
+  to { --border-angle: 360deg; }
+}
+.border-flow {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--color-brand-50), var(--color-brand-50)) padding-box,
+    conic-gradient(from var(--border-angle), var(--color-brand-400), var(--color-brand-200), var(--color-brand-400)) border-box;
+  animation: border-flow 1.6s linear infinite;
+}
+
 /* ---------- motion ---------- */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(10px); }
@@ -143,6 +175,17 @@ body {
   background: linear-gradient(90deg, var(--color-paper-200) 25%, var(--color-paper-50) 50%, var(--color-paper-200) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.4s linear infinite;
+}
+
+/* 动效降级：系统开启「减少动态效果」时停掉一切动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .stagger > * { animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }

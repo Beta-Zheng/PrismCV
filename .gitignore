@@ -12,3 +12,5 @@ _*.*
 _vault_templates/
 scripts/
 dashboard-three-columns.css
+e2e/e2e-tmp/
+.zcode/
