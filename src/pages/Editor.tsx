@@ -381,7 +381,14 @@ export default function Editor({ resumeId }: { resumeId: string }) {
             ).map(([k, label, icon]) => (
               <button key={k} onClick={() => setPanelTab(k)} className={cx("relative flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[12.5px] font-bold transition", panelTab === k ? "text-brand-700" : "text-ink-400 hover:text-ink-700")}>
                 {icon} {label}
-                {panelTab === k && <motion.span layoutId="editor-panel-tab-underline" transition={{ type: "spring", stiffness: 420, damping: 34 }} className="absolute inset-x-6 bottom-0 h-0.5 rounded-full bg-brand-600" />}
+                {panelTab === k && (
+                  <motion.span
+                    layoutId="editor-panel-tab-underline"
+                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    className={cx("absolute inset-x-6 bottom-0 h-0.5 rounded-full", k === "jd" && "bg-brand-600")}
+                    style={k === "ai" ? { backgroundImage: "linear-gradient(90deg, var(--color-sp-a), var(--color-sp-b), var(--color-sp-c))" } : undefined}
+                  />
+                )}
               </button>
             ))}
           </div>

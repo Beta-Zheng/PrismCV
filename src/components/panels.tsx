@@ -194,7 +194,9 @@ export function AIPanel({ resume, activeTarget }: { resume: Resume; activeTarget
 
         {active && (
           <div className="anim-fade-up flex flex-col gap-2.5" key={active.id}>
-            <div className="rounded-xl border border-ink-200 bg-white shadow-sm">
+            <div className="relative overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
+              {/* AI 流标识：光谱左边框（3px），看到光谱 = AI 在工作 */}
+              <span aria-hidden className="absolute inset-y-0 left-0 z-10 w-[3px]" style={{ backgroundImage: "linear-gradient(180deg, var(--color-sp-a), var(--color-sp-b), var(--color-sp-c))" }} />
               <div className="flex items-center gap-2 border-b border-ink-100 px-3.5 py-2.5">
                 <span className={cx("chip", STATUS_CHIP[active.resolution ?? active.status].cls)}>{STATUS_CHIP[active.resolution ?? active.status].text}</span>
                 <span className="text-[12.5px] font-bold text-ink-800">{ACTION_LABELS[active.action].label}</span>
@@ -204,6 +206,7 @@ export function AIPanel({ resume, activeTarget }: { resume: Resume; activeTarget
 
               <div className="flex flex-col gap-2.5 px-3.5 py-3">
                 <p className="flex items-center gap-1.5 text-[11px] text-ink-400">
+                  <span className="sp-dot" />
                   <IconLock size={11} />
                   来源：{active.provider_name} · 不直接覆盖原文
                 </p>
@@ -293,9 +296,9 @@ export function AIPanel({ resume, activeTarget }: { resume: Resume; activeTarget
                       <div className="flex flex-wrap gap-2 border-t border-ink-100 pt-2.5">
                         {!editing ? (
                           <>
-                            <Btn variant="primary" className="h-8" onClick={() => accept(active)}>
+                            <button className="cta-ai flex h-8 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-bold" onClick={() => accept(active)}>
                               <IconCheck size={13} /> 接受
-                            </Btn>
+                            </button>
                             <Btn variant="outline" className="h-8" onClick={() => startEdit(active)}>
                               <IconEdit size={12} /> 编辑后接受
                             </Btn>
@@ -305,9 +308,9 @@ export function AIPanel({ resume, activeTarget }: { resume: Resume; activeTarget
                           </>
                         ) : (
                           <>
-                            <Btn variant="primary" className="h-8" onClick={() => acceptEdited(active)}>
+                            <button className="cta-ai flex h-8 items-center gap-1.5 rounded-md px-3 text-[12.5px] font-bold" onClick={() => acceptEdited(active)}>
                               <IconCheck size={13} /> 接受编辑后的内容
-                            </Btn>
+                            </button>
                             <Btn variant="ghost" className="h-8" onClick={() => { setEditing(false); setDraft(null); }}>
                               返回对比
                             </Btn>
@@ -346,6 +349,15 @@ export function AIPanel({ resume, activeTarget }: { resume: Resume; activeTarget
           </div>
         )}
       </div>
+
+      {/* 底部隐私注脚（设计 §4.3-2）：AI 可控叙事，看到光谱 = AI */}
+      {active && (
+        <div className="border-t border-line px-4 py-2.5">
+          <p className="flex items-center gap-1.5 text-[10.5px] text-ink-400">
+            <span className="sp-dot" /> AI 建议由模型生成 · 确认前不会改动原文
+          </p>
+        </div>
+      )}
 
       {/* 外部模型调用确认（ask_before_external / 首次外部调用） */}
       {pendingExternal && (
@@ -453,7 +465,7 @@ export function JDPanel({ resume }: { resume: Resume }) {
 
         <p className="field-label">提取的技能（{st.skills.length}）</p>
         <div className="mb-3 flex flex-wrap gap-1">
-          {st.skills.length ? st.skills.map((s) => <span key={s} className="chip bg-ink-900 text-paper-50">{s}</span>) : <span className="text-[11px] text-ink-300">未识别到技能词</span>}
+          {st.skills.length ? st.skills.map((s) => <span key={s} className="chip bg-brand-700 text-white">{s}</span>) : <span className="text-[11px] text-ink-300">未识别到技能词</span>}
         </div>
 
         {!report ? (
