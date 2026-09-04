@@ -4,11 +4,12 @@ import { cx } from "./lib/utils";
 import { useApp, type View } from "./lib/store";
 import { ToastHost } from "./components/ui";
 import CommandPalette, { openCommandPalette } from "./components/command-palette";
+import Logo from "./components/logo";
 import Home from "./pages/Home";
 import Editor from "./pages/Editor";
 import Models from "./pages/Models";
 import Settings from "./pages/Settings";
-import { IconAlert, IconClipboard, IconCpu, IconDatabase, IconLogo, IconSearch, IconShield } from "./components/icons";
+import { IconAlert, IconClipboard, IconCpu, IconDatabase, IconSearch, IconShield } from "./components/icons";
 
 /** 全局错误边界：任何渲染异常都显示可读的错误卡片，而不是白屏 */
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -90,9 +91,7 @@ function AppShell() {
       {/* 侧边导航（v1.4 浅色化：surface 底 + line 分隔，墨色退出填充块） */}
       <nav className="flex w-[232px] shrink-0 flex-col border-r border-line bg-surface">
         <div className="flex items-center gap-2.5 px-4 pb-5 pt-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700 ring-1 ring-brand-200">
-            <IconLogo size={19} />
-          </span>
+          <Logo size={36} />
           <div>
             <p className="font-display text-[16px] font-black leading-none text-ink-900">AI Resume</p>
             <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400">local workbench</p>

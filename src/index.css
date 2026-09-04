@@ -311,3 +311,48 @@ body {
   border-radius: 99px;
   background-image: linear-gradient(120deg, var(--color-sp-a), var(--color-sp-b), var(--color-sp-c));
 }
+
+/* ---------- Logo「靛纸航标」v4 ----------
+   底块加深用 .block-hi 叠加 opacity（fill 渐变间不可插值，不能用 transition:fill，见 MEMORY 坑 #2）。
+   纸片 rotate/translateY 与 drop-shadow 可插值，直接 transition。 */
+.logo {
+  display: inline-flex;
+  transition: filter 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.logo .block-hi {
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.logo .paper {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(-6deg);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), filter 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  filter: drop-shadow(0 2px 4px rgba(27, 28, 31, 0.22));
+}
+.logo .ribbon {
+  stroke-dasharray: 26 9;
+  transition: stroke-width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.logo:hover {
+  filter: drop-shadow(0 3px 10px rgba(79, 70, 229, 0.28));
+}
+.logo:hover .block-hi {
+  opacity: 1;
+}
+.logo:hover .paper {
+  transform: rotate(0deg) translateY(-2.5px);
+  filter: drop-shadow(0 4px 9px rgba(27, 28, 31, 0.2));
+}
+.logo:hover .ribbon {
+  animation: logo-flow 1.1s linear infinite;
+  stroke-width: 2.8;
+}
+@keyframes logo-flow {
+  to { stroke-dashoffset: -35; }
+}
+/* reduced-motion：丝带停流、纸片保持 -6° 不回正（与全局降级叠加） */
+@media (prefers-reduced-motion: reduce) {
+  .logo:hover .paper { transform: rotate(-6deg); }
+  .logo:hover .ribbon { animation: none; }
+}

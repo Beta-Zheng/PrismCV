@@ -12,7 +12,7 @@ import { SectionCard } from "../components/blocks";
 import { AIPanel, JDPanel, OutlinePanel } from "../components/panels";
 import { A4Sheet, MIN_ZOOM } from "../components/template";
 import { Btn, Modal, ModalHeader, SaveIndicator } from "../components/ui";
-import { IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconLayout, IconPalette, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
+import { IconAlert, IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconLayout, IconPalette, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
 
 const THEME_COLORS = ["#4F46E5", "#1d4ed8", "#9f1239", "#b45309", "#334155"];
 
@@ -93,7 +93,17 @@ function MenuSection({ title, children }: { title: string; children: ReactNode }
 function SortableSection({ resume, section, onRequestAI }: { resume: Resume; section: Section; onRequestAI: (s: string, b: string, a: AIAction) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.section_id });
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cx(isDragging && "z-20 opacity-90 shadow-2xl shadow-brand-900/20 rounded-xl")}>
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: transform ? `${CSS.Transform.toString(transform)}${isDragging ? " rotate(2deg)" : ""}` : undefined,
+        transition,
+      }}
+      className={cx(
+        "rounded-xl",
+        isDragging && "z-20 opacity-95 shadow-[0_24px_48px_-12px_rgba(99,102,241,0.45)] ring-1 ring-brand-300"
+      )}
+    >
       <SectionCard
         resume={resume}
         section={section}
@@ -128,9 +138,24 @@ export default function Editor({ resumeId }: { resumeId: string }) {
   const [zoom, setZoom] = useState<number>(ZOOM_LEVELS[0]);
   const [addSecOpen, setAddSecOpen] = useState(false);
   const [newSecTitle, setNewSecTitle] = useState("");
+  // 打印预览的单页检测：测量 A4Sheet 实际高度换算页数（null = 尚未测量）
+  const [sheetPage, setSheetPage] = useState<number | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const sections = useMemo(() => (resume ? [...resume.data.sections].sort((a, b) => a.order - b.order) : []), [resume]);
+
+  // 预览打开 / 内容变化后测量纸张高度：A4 高 1123px @96dpi，超出即多页
+  useEffect(() => {
+    if (!previewOpen || !resume) return;
+    const measure = () => {
+      const el = sheetRef.current;
+      if (!el) return;
+      setSheetPage(Math.max(1, Math.ceil(el.scrollHeight / 1123)));
+    };
+    const raf = requestAnimationFrame(() => requestAnimationFrame(measure));
+    return () => cancelAnimationFrame(raf);
+  }, [previewOpen, resume]);
 
   if (!resume) {
     return (
@@ -417,6 +442,11 @@ export default function Editor({ resumeId }: { resumeId: string }) {
             <h3 className="font-display text-[15px] font-bold text-ink-900">模板预览</h3>
             <span className="chip bg-paper-200 font-mono text-[10px] text-ink-500">{TEMPLATES.find((t) => t.template_id === resume.template_id)?.name}</span>
             <span className="chip bg-brand-50 font-mono text-[10px] text-brand-700 ring-1 ring-brand-200">A4 · 文本可复制</span>
+            {sheetPage !== null && (
+              <span className={cx("chip font-mono text-[10px] ring-1", sheetPage > 1 ? "bg-warn-bg text-warn ring-warn/30" : "bg-ok-bg text-ok ring-ok/30")}>
+                {sheetPage === 1 ? "1 页" : `约 ${sheetPage} 页`}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1.5">
             <div className="flex rounded-lg bg-paper-200 p-0.5">
@@ -434,10 +464,33 @@ export default function Editor({ resumeId }: { resumeId: string }) {
         <div className="overflow-auto bg-ink-100/60 px-4 py-5" style={{ maxHeight: "70vh" }}>
           <div className="mx-auto origin-top transition-transform duration-200" style={{ width: 794 * zoom, height: 1123 * zoom }}>
             <div style={{ transform: `scale(${zoom})`, transformOrigin: "top left", width: 794 }}>
-              <A4Sheet resume={resume} />
+              <div ref={sheetRef}>
+                <A4Sheet resume={resume} />
+              </div>
             </div>
           </div>
         </div>
+        {sheetPage !== null && sheetPage > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-warn/30 bg-warn-bg px-4 py-2.5">
+            <p className="flex items-center gap-1.5 text-[12px] font-medium text-warn">
+              <IconAlert size={13} className="shrink-0" />
+              当前内容约 {sheetPage} 页，超出单页
+            </p>
+            {(resume.theme.density ?? "medium") !== "compact" ? (
+              <button
+                onClick={() => {
+                  app.setTheme(resumeId, { density: "compact" });
+                  app.toast("ok", "已切换到紧凑布局");
+                }}
+                className="shrink-0 rounded-md bg-warn px-3 py-1.5 text-[12px] font-bold text-white transition hover:opacity-90 active:scale-[0.97]"
+              >
+                切换到紧凑布局
+              </button>
+            ) : (
+              <span className="text-[11px] font-medium text-warn/80">已是最紧凑布局，可尝试减小字号</span>
+            )}
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-200 bg-paper-25 px-4 py-3">
           <div className="min-w-0">
             <p className="truncate font-mono text-[11.5px] font-medium text-ink-700">{exportName}</p>

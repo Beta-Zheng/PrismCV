@@ -68,7 +68,8 @@ function MiniRing({ pct, size = 46 }: { pct: number; size?: number }) {
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c - (c * pct) / 100}
-          style={{ transition: "stroke-dashoffset .45s cubic-bezier(.22,1,.36,1)" }}
+          className="anim-ring-draw"
+          style={{ ["--ring-c" as string]: `${c}`, transition: "stroke-dashoffset .45s cubic-bezier(.22,1,.36,1)" }}
         />
       </svg>
       <span className="absolute inset-0 flex items-center justify-center font-mono text-[11px] font-bold text-ink-800">{pct}</span>
