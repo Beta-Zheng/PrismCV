@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { Resume, SourceKind } from "../types";
+import type { Resume, SectionType, SourceKind } from "../types";
 import { TEMPLATES } from "../types";
 import { ACCEPT_EXTS, MAX_FILE_SIZE, extractFileText, structureResume, emptyResume, type SupportedExt } from "../lib/parser";
 import { buildSampleResume } from "../lib/samples";
 import { formatBytes, cx, timeAgo } from "../lib/utils";
 import { useApp } from "../lib/store";
-import { celebrate, celebrateBig } from "../lib/celebrate";
+import { celebrateBig } from "../lib/celebrate";
 import { Btn, Confirm, Modal, ModalHeader } from "../components/ui";
 import { IconArrowRight, IconCheck, IconClipboard, IconFile, IconLayers, IconPlus, IconShield, IconSpark, IconTrash, IconUpload, IconAlert, IconZap } from "../components/icons";
 
@@ -19,8 +19,65 @@ const PIPE_STEPS: PipeStep[] = [
   { label: "生成草稿", state: "wait" },
 ];
 
+/* ---------------- 仪表盘数据推导（全部来自真实 store，不编造） ---------------- */
+
+/** 与设计稿对齐的 6 个核心模块：完成度与进度点的统一分母 */
+const CORE_MODULES: { type: SectionType; label: string }[] = [
+  { type: "basic_info", label: "基本信息" },
+  { type: "summary", label: "个人总结" },
+  { type: "work_experience", label: "工作经历" },
+  { type: "project_experience", label: "项目经历" },
+  { type: "education", label: "教育经历" },
+  { type: "skills", label: "技能" },
+];
+
+type Section = Resume["data"]["sections"][number];
+
+/** 与 runParse 的 hasContent 同一口径：summary 看 description、skills 看词条数，其余看块数 */
+function sectionHasContent(s: Section): boolean {
+  if (s.type === "summary") return s.blocks.some((b) => b.description?.trim());
+  if (s.type === "skills") return s.blocks.some((b) => (b.skills?.length ?? 0) > 0);
+  return s.blocks.length > 0;
+}
+
+function moduleFilled(r: Resume, type: SectionType): boolean {
+  if (type === "basic_info") {
+    const b = r.data.basic_info;
+    return !!(b.name || b.email || b.phone);
+  }
+  const s = r.data.sections.find((x) => x.type === type);
+  return s ? sectionHasContent(s) : false;
+}
+
+/** 完成度环（光谱描边）：光谱在设计系统中是"AI 参与度"的语义色，完成度环是设计 §2 明确豁免的三处之一 */
+function MiniRing({ pct, size = 46 }: { pct: number; size?: number }) {
+  const stroke = 4.5;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <span className="relative inline-flex shrink-0" title={`核心模块完成度 ${pct}%（基本信息/总结/工作/项目/教育/技能）`}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-line)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="url(#sp-grad-ring)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c - (c * pct) / 100}
+          style={{ transition: "stroke-dashoffset .45s cubic-bezier(.22,1,.36,1)" }}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center font-mono text-[11px] font-bold text-ink-800">{pct}</span>
+    </span>
+  );
+}
+
 export default function Home() {
-  const { resumes, models, privacy, externalCallCount, go, createResume, deleteResume, duplicateResume, toast } = useApp();
+  const { resumes, suggestions, privacy, externalCallCount, go, createResume, deleteResume, duplicateResume, toast } = useApp();
   const [modal, setModal] = useState<"create" | null>(null);
   const [tab, setTab] = useState<"file" | "paste">("file");
   const [pipe, setPipe] = useState<PipeStep[] | null>(null);
@@ -130,7 +187,6 @@ export default function Home() {
     [runParse]
   );
 
-  const localModels = models.filter((m) => m.enabled && m.type !== "external").length;
   const hadResumes = useRef(resumes.length > 0);
   /** 从 0 → 1 创建首份简历：值得一个小庆祝（celebrateBig 自带 reduced-motion 降级） */
   const noteFirstResume = () => {
@@ -138,189 +194,242 @@ export default function Home() {
     hadResumes.current = true;
   };
 
+  const openCreate = (t: "file" | "paste") => {
+    setModal("create");
+    setTab(t);
+    setError(null);
+    setPipe(null);
+  };
+  const createBlank = () => {
+    const id = createResume(emptyResume(), "未命名简历");
+    noteFirstResume();
+    toast("ok", "已创建空白简历");
+    go({ name: "editor", resumeId: id });
+  };
+  const loadSample = () => {
+    const id = createResume(buildSampleResume(), "陈墨（示例）");
+    noteFirstResume();
+    toast("ok", "已载入示例简历，可随意修改");
+    go({ name: "editor", resumeId: id });
+  };
+
+  /* ---------- 数据带：四个真实指标（JD 分未持久化，不展示编造值） ---------- */
+  const resolvedSugs = suggestions.filter((s) => s.resolution);
+  const acceptedSugs = resolvedSugs.filter((s) => s.resolution === "accepted" || s.resolution === "edited_accepted");
+  const acceptRate = resolvedSugs.length ? Math.round((acceptedSugs.length / resolvedSugs.length) * 100) : null;
+  const pendingCount = suggestions.filter((s) => s.status === "success" && !s.resolution).length;
+
+  const stats: { label: React.ReactNode; value: string; sub: string }[] = [
+    { label: "简历总数", value: String(resumes.length), sub: resumes.length ? "全部保存在本机" : "从新建开始" },
+    {
+      label: (
+        <span className="flex items-center gap-1.5">
+          <span className="sp-dot" /> AI 建议接受率
+        </span>
+      ),
+      value: acceptRate === null ? "—" : `${acceptRate}%`,
+      sub: resolvedSugs.length ? `已处理 ${resolvedSugs.length} 条建议` : "还没有 AI 建议",
+    },
+    {
+      label: (
+        <span className="flex items-center gap-1.5">
+          <span className="sp-dot" /> 待确认建议
+        </span>
+      ),
+      value: String(pendingCount),
+      sub: pendingCount ? "打开简历逐条确认" : "没有待处理项",
+    },
+    { label: "外部调用", value: String(externalCallCount), sub: privacy.allowExternal ? "外部模型已开启" : "数据未出本机" },
+  ];
+
   return (
-    <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 pb-16 pt-8">
-      {/* 页面右上角常驻品牌氛围光：低透明度径向渐变，不参与交互 */}
+    <div
+      className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pb-16 pt-8"
+      onDragOver={(e) => {
+        if (modal) return;
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        if (modal) return;
+        e.preventDefault();
+        setDragOver(false);
+        const f = e.dataTransfer.files?.[0];
+        if (f) {
+          openCreate("file");
+          handleFile(f);
+        }
+      }}
+    >
+      {/* 光谱渐变定义：完成度环共享（全站渐变只定义一次） */}
+      <svg aria-hidden className="absolute h-0 w-0">
+        <defs>
+          <linearGradient id="sp-grad-ring" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" style={{ stopColor: "var(--color-sp-a)" }} />
+            <stop offset="50%" style={{ stopColor: "var(--color-sp-b)" }} />
+            <stop offset="100%" style={{ stopColor: "var(--color-sp-c)" }} />
+          </linearGradient>
+        </defs>
+      </svg>
+      {/* 页面级拖拽上传遮罩：取代旧上传大卡，入口收进问候行主按钮（评审 P1-9 方案①） */}
+      {dragOver && !modal && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-page/70 backdrop-blur-sm">
+          <div className="ai-ring rounded-2xl px-7 py-4 text-[14px] font-bold text-ink-800">松开鼠标，上传这份简历</div>
+        </div>
+      )}
+      {/* 品牌氛围光：低透明度径向渐变，不参与交互 */}
       <div aria-hidden className="pointer-events-none absolute -top-10 right-0 -z-10 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
-      {/* 顶部：工作台标题 + 隐私状态 */}
+
+      {/* 问候行：serif 标题 + 隐私徽章 + 新建主按钮（本页唯一实心光谱 CTA） */}
       <header className="anim-fade-up flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-brand-600">
             <IconZap size={12} /> Local-first Resume Workbench
           </p>
-          <h1 className="font-display text-[34px] font-black leading-tight text-ink-900">
-            简历工作台
-            <span className="ml-3 align-middle font-mono text-[12px] font-medium text-ink-300">v1.1 MVP</span>
-          </h1>
+          <h1 className="font-display text-[34px] font-black leading-tight text-ink-900">简历工作台</h1>
           <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink-500">
             上传简历 → 结构化解析 → 模块编辑与拖拽排序 → JD 匹配 → AI 建议（需确认）→ PDF 导出。默认数据不出本机。
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className={cx("chip px-2.5 py-1 text-[11.5px] ring-1", privacy.allowExternal ? "bg-seal-100 text-seal-700 ring-seal-500/30" : "bg-brand-50 text-brand-700 ring-brand-200")}>
+        <div className="flex flex-col items-end gap-2.5">
+          <span className={cx("chip px-2.5 py-1 text-[11.5px] ring-1", privacy.allowExternal ? "bg-warn-bg text-warn ring-warn/30" : "bg-ok-bg text-ok ring-ok/30")}>
             <IconShield size={12} />
             {privacy.allowExternal ? "外部模型已开启" : "本地模式 · 外部模型默认关闭"}
           </span>
-          <div className="flex gap-4 font-mono text-[11px] text-ink-400">
-            <span><b className="text-ink-800">{resumes.length}</b> 份简历</span>
-            <span><b className="text-ink-800">{localModels}</b> 个本地模型</span>
-            <span><b className="text-ink-800">{externalCallCount}</b> 次外部调用</span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button onClick={() => openCreate("file")} className="cta-ai flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-bold">
+              <IconPlus size={14} /> 新建简历
+            </button>
+            <button onClick={() => openCreate("paste")} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
+              <IconClipboard size={13} /> 粘贴文本
+            </button>
+            <button onClick={createBlank} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
+              空白简历
+            </button>
+            <button onClick={loadSample} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
+              <IconSpark size={13} /> 载入示例
+            </button>
           </div>
         </div>
       </header>
 
-      {/* 创建区：非对称工作台 */}
-      <div className="grid gap-3 md:grid-cols-[1.35fr_1fr]">
-        <button
-          onClick={() => { setModal("create"); setTab("file"); setError(null); setPipe(null); }}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragOver(false);
-            const f = e.dataTransfer.files?.[0];
-            if (f) { setModal("create"); handleFile(f); }
-          }}
-          className={cx(
-            "anim-fade-up group relative flex min-h-[190px] flex-col justify-between overflow-hidden rounded-2xl border-2 border-dashed p-5 text-left transition-all duration-200",
-            dragOver ? "border-flow" : "border-ink-200 bg-paper-25 hover:border-brand-400 hover:bg-white hover:shadow-md hover:shadow-ink-950/5"
-          )}
-          style={{ animationDelay: "0.05s" }}
-        >
-          <div className="flex items-start justify-between">
-            <span className={cx("flex h-11 w-11 items-center justify-center rounded-xl transition-colors", dragOver ? "bg-brand-600 text-white" : "bg-brand-700 text-white group-hover:bg-brand-600")}>
-              <IconUpload size={20} />
-            </span>
-            <span className="chip bg-paper-200 font-mono text-[10px] text-ink-500">≤ 10MB</span>
+      {/* 数据带：纯数字四格（mono 数字；AI 指标带 sp-dot，看到光谱 = AI） */}
+      <section className="anim-fade-up grid grid-cols-2 gap-3 sm:grid-cols-4" style={{ animationDelay: "0.05s" }}>
+        {stats.map((s, i) => (
+          <div key={i} className="rounded-xl border border-line bg-surface px-4 py-3.5">
+            <p className="text-[11px] font-medium text-ink-400">{s.label}</p>
+            <p className="mt-1 font-mono text-[26px] font-bold leading-none text-ink-900">{s.value}</p>
+            <p className="mt-1.5 text-[10.5px] text-ink-400">{s.sub}</p>
           </div>
-          <div>
-            <p className="text-[16px] font-bold text-ink-900">上传简历文件</p>
-            <p className="mt-1 text-[12px] text-ink-400">拖拽到此处，或点击选择文件</p>
-            <div className="mt-2.5 flex gap-1.5">
-              {[".pdf", ".docx", ".md", ".txt"].map((t) => (
-                <span key={t} className="chip bg-paper-200 font-mono text-[10.5px] text-ink-600 transition group-hover:bg-brand-50 group-hover:text-brand-700">{t}</span>
-              ))}
-            </div>
-          </div>
-          <span className="pointer-events-none absolute -right-5 -top-5 h-24 w-24 rounded-full bg-brand-100/70 blur-2xl transition-opacity opacity-0 group-hover:opacity-100" />
-        </button>
+        ))}
+      </section>
 
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={() => { setModal("create"); setTab("paste"); setError(null); setPipe(null); }}
-            className="anim-fade-up group flex flex-1 items-center gap-3 rounded-2xl border border-ink-200 bg-paper-25 px-4 py-3.5 text-left transition-all duration-200 hover:border-brand-400 hover:bg-white hover:shadow-md hover:shadow-ink-950/5"
-            style={{ animationDelay: "0.1s" }}
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition group-hover:bg-brand-600 group-hover:text-white">
-              <IconClipboard size={17} />
-            </span>
-            <span>
-              <span className="block text-[14px] font-bold text-ink-900">粘贴简历文本</span>
-              <span className="block text-[11.5px] text-ink-400">无文件时的兜底入口，直接解析纯文本</span>
-            </span>
-            <IconArrowRight size={15} className="ml-auto text-ink-200 transition group-hover:translate-x-0.5 group-hover:text-brand-600" />
-          </button>
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                const id = createResume(emptyResume(), "未命名简历");
-                noteFirstResume();
-                toast("ok", "已创建空白简历");
-                go({ name: "editor", resumeId: id });
-              }}
-              className="anim-fade-up group flex flex-1 items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-3 py-3 text-[13px] font-bold text-brand-700 transition-all duration-200 hover:border-brand-600 hover:bg-brand-600 hover:text-white"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <IconPlus size={14} /> 空白简历
-            </button>
-            <button
-              onClick={() => {
-                const id = createResume(buildSampleResume(), "陈墨（示例）");
-                noteFirstResume();
-                toast("ok", "已载入示例简历，可随意修改");
-                go({ name: "editor", resumeId: id });
-              }}
-              className="anim-fade-up group flex flex-1 items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-3 py-3 text-[13px] font-bold text-brand-700 transition-all duration-200 hover:bg-brand-gradient hover:text-white hover:shadow-brand-glow"
-              style={{ animationDelay: "0.2s" }}
-            >
-              <IconSpark size={14} /> 载入示例
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 最近简历 */}
+      {/* 简历卡网格 */}
       <section>
         <div className="mb-2.5 flex items-center justify-between">
           <h2 className="font-display text-[18px] font-bold text-ink-900">最近简历</h2>
-          <span className="font-mono text-[11px] text-ink-300">{resumes.length ? `共 ${resumes.length} 份 · 保存在本机` : "数据保存在本机 localStorage"}</span>
+          <span className="flex items-center gap-3 font-mono text-[10px] text-ink-400">
+            <span className="flex items-center gap-1"><span className="h-[7px] w-[7px] rounded-full bg-brand-500" /> 已填写</span>
+            <span className="flex items-center gap-1"><span className="sp-dot" /> AI 参与</span>
+            <span className="flex items-center gap-1"><span className="h-[7px] w-[7px] rounded-full bg-line" /> 未开始</span>
+            {resumes.length > 0 && <span className="ml-1">共 {resumes.length} 份</span>}
+          </span>
         </div>
 
         {resumes.length === 0 ? (
-          <div className="anim-fade-up flex flex-col items-center rounded-2xl border border-ink-200 bg-paper-25 px-6 py-12 text-center">
+          <div className="anim-fade-up flex flex-col items-center rounded-2xl border border-line bg-surface px-6 py-12 text-center">
             <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-700">
               <IconFile size={24} />
             </span>
             <p className="text-[15px] font-bold text-ink-800">还没有简历</p>
             <p className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-ink-400">上传一份现有简历，或从示例开始体验完整流程：解析 → 编辑 → JD 匹配 → AI 建议 → 导出。</p>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => openCreate("file")} className="cta-ai flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-bold">
+                <IconPlus size={14} /> 新建简历
+              </button>
+              <button onClick={loadSample} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
+                <IconSpark size={13} /> 载入示例
+              </button>
+            </div>
           </div>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <AnimatePresence initial={false}>
-              {resumes.map((r) => (
-                <motion.li
-                  key={r.id}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } }}
-                  exit={{ opacity: 0, x: 40, transition: { duration: 0.18, ease: "easeIn" } }}
-                  className="group flex items-center gap-4 rounded-xl border border-ink-200 bg-paper-25 px-4 py-3 transition-colors duration-150 hover:border-brand-300 hover:bg-white"
-                >
-                <button onClick={() => go({ name: "editor", resumeId: r.id })} className="flex min-w-0 flex-1 items-center gap-4 text-left">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg font-display text-[17px] font-black" style={{ background: r.theme.primary_color + "1a", color: r.theme.primary_color }}>
-                    {(r.data.basic_info.name || r.title).slice(0, 1)}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate text-[15px] font-bold text-ink-900">{r.data.basic_info.name || r.title}</span>
-                      {r.data.basic_info.title && <span className="hidden truncate text-[12px] text-ink-400 sm:inline">{r.data.basic_info.title}</span>}
-                    </span>
-                    <span className="mt-0.5 flex items-center gap-2 font-mono text-[10.5px] text-ink-300">
-                      <span>{timeAgo(r.updated_at)}更新</span>
-                      <span className="chip bg-paper-200 py-0 text-[10px]">{TEMPLATES.find((t) => t.template_id === r.template_id)?.name ?? "自定义"}</span>
-                      <span className="chip bg-paper-200 py-0 text-[10px]">{r.data.sections.filter((s) => s.visible).length} 个模块</span>
-                      <span className="chip bg-paper-200 py-0 text-[10px]">来源 {r.data.metadata.source}</span>
-                    </span>
-                  </span>
-                </button>
-                <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                  <Btn variant="primary" className="h-8 px-3 text-[12px]" onClick={() => go({ name: "editor", resumeId: r.id })}>
-                    打开 <IconArrowRight size={12} />
-                  </Btn>
-                  <button className="tool-btn" onClick={() => duplicateResume(r.id)} title="复制" aria-label="复制简历">
-                    <IconLayers size={15} />
-                  </button>
-                  <button className="tool-btn hover:bg-danger-100 hover:text-danger-600" onClick={() => setDelTarget(r)} title="删除" aria-label="删除简历">
-                    <IconTrash size={15} />
-                  </button>
-                </div>
-              </motion.li>
-            ))}
+              {resumes.map((r) => {
+                const sugSectionIds = new Set(suggestions.filter((s) => s.resume_id === r.id && s.status === "success").map((s) => s.section_id));
+                const dots = CORE_MODULES.map((m) => {
+                  const ai = m.type !== "basic_info" && sugSectionIds.has(m.type);
+                  const filled = moduleFilled(r, m.type);
+                  return { ...m, state: (ai ? "ai" : filled ? "filled" : "empty") as "ai" | "filled" | "empty" };
+                });
+                const completion = Math.round((dots.filter((d) => d.state !== "empty").length / dots.length) * 100);
+                const pending = suggestions.filter((s) => s.resume_id === r.id && s.status === "success" && !s.resolution).length;
+                return (
+                  <motion.li
+                    key={r.id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } }}
+                    exit={{ opacity: 0, x: 40, transition: { duration: 0.18, ease: "easeIn" } }}
+                    className="group flex flex-col rounded-2xl border border-line bg-surface p-4 transition-all duration-200 hover:-translate-y-[2px] hover:border-brand-200 hover:shadow-[0_6px_18px_-10px_rgba(27,28,31,.18)]"
+                  >
+                    <button onClick={() => go({ name: "editor", resumeId: r.id })} className="flex w-full items-start gap-3 text-left">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg font-display text-[17px] font-black" style={{ background: r.theme.primary_color + "1a", color: r.theme.primary_color }}>
+                        {(r.data.basic_info.name || r.title).slice(0, 1)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate text-[14.5px] font-bold text-ink-900">{r.data.basic_info.name || r.title}</span>
+                          {r.data.basic_info.title && <span className="hidden truncate text-[11.5px] text-ink-400 sm:inline">{r.data.basic_info.title}</span>}
+                        </span>
+                        <span className="mt-1 flex flex-wrap items-center gap-1.5 font-mono text-[10px] text-ink-400">
+                          <span>{timeAgo(r.updated_at)}更新</span>
+                          <span className="chip bg-subtle py-0 text-[10px] text-ink-500">{TEMPLATES.find((t) => t.template_id === r.template_id)?.name ?? "自定义"}</span>
+                          <span className="chip bg-subtle py-0 text-[10px] text-ink-500">{r.data.sections.filter((s) => s.visible).length} 模块</span>
+                        </span>
+                      </span>
+                      <MiniRing pct={completion} />
+                    </button>
+
+                    {/* 模块进度点：实=已填写 / 光谱=AI 已参与 / 空=未开始 */}
+                    <div className="mt-3 flex items-center gap-1.5">
+                      {dots.map((d) => (
+                        <span
+                          key={d.type}
+                          title={`${d.label} · ${d.state === "ai" ? "AI 已参与" : d.state === "filled" ? "已填写" : "未开始"}`}
+                          className={cx("h-[7px] w-[7px] rounded-full", d.state === "filled" && "bg-brand-500", d.state === "empty" && "bg-line", d.state === "ai" && "sp-dot")}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
+                      {pending > 0 ? (
+                        <span className="ai-ring inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-bold text-ink-800">
+                          {pending} 条建议待确认
+                        </span>
+                      ) : (
+                        <span className="text-[10.5px] text-ink-400">来源 {r.data.metadata.source}</span>
+                      )}
+                      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                        <Btn variant="primary" className="h-7 px-2.5 text-[11.5px]" onClick={() => go({ name: "editor", resumeId: r.id })}>
+                          打开 <IconArrowRight size={11} />
+                        </Btn>
+                        <button className="tool-btn" onClick={() => duplicateResume(r.id)} title="复制" aria-label="复制简历">
+                          <IconLayers size={14} />
+                        </button>
+                        <button className="tool-btn hover:bg-danger-100 hover:text-danger-600" onClick={() => setDelTarget(r)} title="删除" aria-label="删除简历">
+                          <IconTrash size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.li>
+                );
+              })}
             </AnimatePresence>
           </ul>
         )}
       </section>
-
-      {/* 流程说明条（v1.4 浅色化：subtle 底 + 靛蓝编号，墨色退出填充块） */}
-      <div className="anim-fade-up mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-line bg-subtle px-5 py-3.5" style={{ animationDelay: "0.25s" }}>
-        {["上传 / 粘贴", "结构化解析", "编辑 + 拖拽排序", "JD 匹配 & AI 建议", "模板预览", "PDF 导出"].map((s, i) => (
-          <span key={s} className="flex items-center gap-2 text-[11.5px] font-medium text-ink-700">
-            <span className="bg-brand-gradient flex h-5 w-5 items-center justify-center rounded-full font-mono text-[10px] font-bold text-white">{i + 1}</span>
-            {s}
-            {i < 5 && <IconArrowRight size={11} className="ml-3 text-ink-400" />}
-          </span>
-        ))}
-      </div>
 
       {/* 创建弹窗 */}
       <Modal open={modal === "create"} onClose={() => { if (!runningRef.current) { setModal(null); setPipe(null); setError(null); setParsing(false); } }} width="max-w-xl">

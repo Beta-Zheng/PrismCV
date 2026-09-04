@@ -264,3 +264,50 @@ body {
   /* 模块标题不落在页尾（标题与内容不分离） */
   .resume-sheet h2 { break-after: avoid; }
 }
+
+/* ---------- AI 光谱三态（v1.4 落地：看到光谱 = AI 在工作） ----------
+   光谱是语义色不是装饰：只用于 AI 元素 + 设计 §2 豁免的完成度环/命令面板焦点。
+   长写法 + 双类（0-2-0）+ 文件末尾，三件套防级联覆盖（MEMORY 坑 #1）。 */
+.ai-ring.ai-ring {
+  border: 1.5px solid transparent;
+  background-image: linear-gradient(#fff, #fff), linear-gradient(120deg, var(--color-sp-a), var(--color-sp-b), var(--color-sp-c));
+  background-clip: padding-box, border-box;
+  background-origin: padding-box, border-box;
+  background-size: 100% 100%, 240% 240%;
+  background-position: 0 0, 0% 0%;
+  transition: background-position 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ai-ring.ai-ring:hover {
+  background-position: 0 0, 100% 100%;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px -16px rgb(79 70 229 / 0.25);
+}
+
+/* 实心光谱：仅限 CTA，一屏 ≤ 2 个（新建简历 / AI 面板激活态） */
+.cta-ai.cta-ai {
+  border: none;
+  color: #fff;
+  background-image: linear-gradient(120deg, var(--color-sp-a), var(--color-sp-b), var(--color-sp-c));
+  background-size: 240% 240%;
+  background-position: 0% 0%;
+  box-shadow: 0 1px 2px rgb(27 28 31 / 0.08);
+  transition: background-position 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cta-ai.cta-ai:hover {
+  background-position: 100% 100%;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px -16px rgb(79 70 229 / 0.35);
+}
+.cta-ai.cta-ai:active {
+  transform: translateY(0);
+}
+
+/* 光谱点：AI 指标 / 状态点 / 面板脚注 */
+.sp-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 99px;
+  background-image: linear-gradient(120deg, var(--color-sp-a), var(--color-sp-b), var(--color-sp-c));
+}
