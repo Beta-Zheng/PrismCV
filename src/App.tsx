@@ -3,11 +3,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { cx } from "./lib/utils";
 import { useApp, type View } from "./lib/store";
 import { ToastHost } from "./components/ui";
+import CommandPalette, { openCommandPalette } from "./components/command-palette";
 import Home from "./pages/Home";
 import Editor from "./pages/Editor";
 import Models from "./pages/Models";
 import Settings from "./pages/Settings";
-import { IconAlert, IconClipboard, IconCpu, IconDatabase, IconLogo, IconShield } from "./components/icons";
+import { IconAlert, IconClipboard, IconCpu, IconDatabase, IconLogo, IconSearch, IconShield } from "./components/icons";
 
 /** 全局错误边界：任何渲染异常都显示可读的错误卡片，而不是白屏 */
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -104,6 +105,18 @@ function AppShell() {
           ))}
         </div>
 
+        {/* ⌘K 命令面板常驻入口（产品无顶栏，搜索条收进侧栏） */}
+        <div className="mt-2 px-2.5">
+          <button
+            onClick={openCommandPalette}
+            className="flex w-full items-center gap-2 rounded-lg border border-line bg-paper-25 px-3 py-2 text-[12.5px] text-ink-400 transition hover:border-brand-300 hover:text-brand-700"
+          >
+            <IconSearch size={13} />
+            <span className="flex-1 text-left">搜索命令</span>
+            <kbd className="rounded border border-ink-200 bg-paper-200 px-1.5 py-0.5 font-mono text-[10px] text-ink-500">⌘K</kbd>
+          </button>
+        </div>
+
         <div className="mt-auto px-2.5 pb-2.5">
           <div className="rounded-xl bg-subtle px-3 py-3 ring-1 ring-line">
             <p className="flex items-center gap-1.5 text-[11px] font-bold text-ink-900">
@@ -140,6 +153,7 @@ function AppShell() {
       </main>
 
       <ToastHost />
+      <CommandPalette />
     </div>
   );
 }

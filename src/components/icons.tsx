@@ -308,3 +308,12 @@ export const IconUser = (p: P) =>
       <circle cx="12" cy="7" r="4" />
     </>
   ));
+
+/* 命令面板 / 搜索入口的放大镜 */
+export const IconSearch = (p: P) =>
+  base(p, (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </>
+  ));
