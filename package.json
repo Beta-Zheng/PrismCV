@@ -1,6 +1,8 @@
 {
-  "name": "ai-resume",
+  "name": "prism-cv",
   "private": true,
+  "description": "PrismCV — local-first AI resume workbench · 本地优先的 AI 简历工作台",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=18.0.0"

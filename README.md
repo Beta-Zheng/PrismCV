@@ -1,20 +1,52 @@
-# AI Resume · 本地 AI 简历工作台
+# PrismCV — AI Resume Workbench · 本地 AI 简历工作台
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-534AB7.svg)](LICENSE)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF.svg)](https://vite.dev)
+[![Local-first](https://img.shields.io/badge/local--first-100%25%20in--browser-0F6E56.svg)](#隐私与安全)
+
+> **Local-first · Privacy by default · Human-in-the-loop AI · Data-driven editing**
 > 本地优先 · 隐私默认保护 · 用户可控 · AI 辅助而非自动覆盖 · 结构化数据驱动
 
-一个运行在本机的 AI 辅助简历编辑工具：上传简历自动解析为结构化数据，按模块编辑、拖拽排序，粘贴 JD 获取匹配分析，针对单个模块获取 AI 优化建议（确认后才应用），三套模板实时预览并导出 A4 PDF。**默认数据不出本机，外部模型需显式开启。**
+**PrismCV** is a local-first, AI-assisted resume workbench that runs entirely in your browser. Upload an existing resume — PDF / DOCX / MD / TXT — and it is parsed into structured data; edit module by module, drag to reorder, paste a **job description** to get a local matching analysis, and ask AI for per-section suggestions that are always shown as a diff before you accept them. Export a pixel-faithful A4 PDF through the system print pipeline. **No data leaves your machine by default**; external models must be explicitly enabled and confirmed per call.
 
-## 快速开始
+The name is a pun on optics: a resume is a *prism* that splits your career into the spectrum a role is looking for — the same tricolor spectrum (`#38BDF8 → #6366F1 → #C084FC`) used across the UI's AI accents.
+
+<!-- ![PrismCV overview](docs/screenshot.png)  ← 在此放置演示截图（建议 1280×720） -->
+
+---
+
+## English quick start
 
 ```bash
 npm install
-npm run dev           # 开发模式 → http://localhost:3000
-npm run build         # 生产构建 → dist/（可直接静态托管 dist/index.html）
-npm run typecheck     # TypeScript 类型检查
-npm test              # 运行单元测试（parser / jd / ai / utils / flows）
+npm run dev           # dev mode → http://localhost:3000
+npm run build         # production build → dist/
+npm run typecheck     # TypeScript check
+npm test              # unit tests (parser / jd / ai / utils / flows)
 ```
 
-要求：Node.js ≥ 18。可选：本地安装 [Ollama](https://ollama.com) 以启用本地大模型建议。
+Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to enable on-device model suggestions.
+
+### Highlights
+
+- **Local-first by default** — no uploads, no telemetry, no account; models are opt-in only.
+- **Parse, don't retype** — import PDF / DOCX / MD / TXT and get structured resume data back.
+- **A4 WYSIWYG editing** — three templates, drag-and-drop module ordering, live A4 preview.
+- **JD matching** — paste a job description; a local rule engine scores fit and lists missing skills & keywords.
+- **Human-in-the-loop AI** — seven per-block actions; every suggestion appears as a diff before applying.
+- **Print-perfect export** — system print pipeline → PDF, honoring template / theme / typography exactly.
+
+### Templates
+
+| Template | Description |
+|---|---|
+| Modern | 现代单栏：serif name + themed section rules + icon badges |
+| Classic ATS | 经典黑白：standard headings, plain-text skills — built for parser-first screening |
+| Academic | 学术双栏：photo header, circular icon badges — suits graduates & academia |
+
+> Full Chinese documentation below. 中文完整文档如下。
 
 ---
 
@@ -46,15 +78,10 @@ npm test              # 运行单元测试（parser / jd / ai / utils / flows）
 
 ### 3. 模板与主题
 
-| 功能 | 说明 |
-|---|---|
-| 三套模板 | **现代单栏**（衬线姓名 + 主题色模块线 + 图标徽章）、**经典 ATS**（纯黑白、标准标题、实线下边框、技能纯文本，过筛率优先）、**学术双栏**（头像 + 校徽头区 + 圆形图标徽章，适合应届/学术） |
-| 主题色 | 5 个预设 + 自定义取色器（ATS 模板固定黑白，不提供主题色） |
-| 字号 | 13 / 14 / 15px 三档 |
-| 字体 | 黑体 / 宋体 / 系统 / 楷体 / 等宽 / 仿宋（Noto Sans/Serif SC 内置打包） |
-| 密度 | 紧凑 / 中等 / 宽松，调节一页篇幅 |
-| 条头布局 | 标题·日期同行（row）/ 日期另起一行（stack） |
-| 全局要点样式 | 圆点 / 菱形 / 箭头 / 有序数字，模块级可覆盖 |
+- 三套模板：**现代单栏**（衬线姓名 + 主题色模块线 + 图标徽章）、**经典 ATS**（纯黑白、标准标题、实线下边框、技能纯文本，过筛率优先）、**学术双栏**（头像 + 校徽头区 + 圆形图标徽章，适合应届/学术）；
+- 主题色：5 个预设 + 自定义取色器（ATS 模板固定黑白，不提供主题色）；
+- 字号 13/14/15px 三档；字体：黑体/宋体/系统/楷体/等宽/仿宋（Noto Sans/Serif SC 内置打包）；
+- 密度：紧凑 / 中等 / 宽松；条头布局：标题·日期同行（row）/ 日期另起一行（stack）。
 
 ### 4. 预览与 PDF 导出
 
@@ -64,11 +91,7 @@ npm test              # 运行单元测试（parser / jd / ai / utils / flows）
 
 ### 5. JD 匹配（本地规则引擎）
 
-右侧面板粘贴 JD → 「解析 JD」提取岗位名/职责/要求/技能/关键词/学历/年限 → 「分析匹配度」输出：
-
-- 综合分 + 四维评分（技能匹配 / 关键词覆盖 / 经历相关性 / 表达质量）；
-- `missing_skills`、`missing_keywords` 清单与逐条优化建议；
-- 匹配完全由本地规则完成（`lib/jd.ts`），不依赖大模型。
+右侧面板粘贴 JD → 「解析 JD」提取岗位名/职责/要求/技能/关键词/学历/年限 → 「分析匹配度」输出：综合分 + 四维评分（技能匹配 / 关键词覆盖 / 经历相关性 / 表达质量）、`missing_skills` / `missing_keywords` 清单与逐条优化建议。匹配完全由本地规则完成（`lib/jd.ts`），不依赖大模型。
 
 ### 6. AI 单块建议
 
@@ -101,16 +124,16 @@ npm test              # 运行单元测试（parser / jd / ai / utils / flows）
 - **粘贴文本**：解析失败时自动切换到此页签，也可直接粘贴简历全文；
 - **空白/示例**：完全手动，或载入内置示例简历体验全流程。
 
-> 扫描件 PDF 无可提取文本时会明确提示，并引导改用粘贴方式（PRD §6.2.1）。
+> 扫描件 PDF 无可提取文本时会明确提示，并引导改用粘贴方式。
 
 ### 2. 编辑器
 
 - **左栏 · 模块大纲**：拖拽调整模块顺序、开关显隐、添加自定义模块；
 - **中栏 · 编辑区**：每个模块卡片支持整卡拖拽排序、Block 增删、上移/下移、显隐；描述与要点支持选中加粗/斜体；所有字段即时编辑；
-- **右栏 · AI 与 JD 面板**：见下两节；
+- **右栏 · AI 与 JD 面板**；
 - **自动保存**：停止输入约 1 秒后写入本地，顶栏显示保存时间戳。
 
-### 3. 模块拖拽排序（FR-14）
+### 3. 模块拖拽排序
 
 左侧大纲与编辑区拖拽手柄均可调整 Section 顺序，松手即按 `order` 升序持久化；隐藏模块保留位置；重新打开、切换模板、导出 PDF 均与编辑器顺序一致。
 
@@ -154,3 +177,17 @@ src/
 ├── types.ts          数据模型（含模板、主题、AI 动作定义）
 └── App.tsx           应用外壳 + 全局错误边界
 ```
+
+---
+
+## 名称由来
+
+**Prism**（棱镜）——一束白光穿过棱镜，被分成一条光谱，正如界面里那道 AI 光谱（`#38BDF8 → #6366F1 → #C084FC`）。简历也是一块棱镜：把真实的你，折射成机会想看到的样子。**CV** 直抒品类。
+
+## License
+
+[MIT](LICENSE) © 2026 PrismCV contributors（发布前请将版权署名替换为实际作者）
+
+## Contributing
+
+Issues & PRs welcome. 代码约定：模块与 store 层保持纯净（`lib/` 不与 UI 主题耦合），改动请同步跑 `npm run typecheck && npm test`。
