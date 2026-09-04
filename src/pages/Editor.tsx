@@ -186,7 +186,7 @@ export default function Editor({ resumeId }: { resumeId: string }) {
                 onClick={() => app.setTemplate(resumeId, t.template_id)}
                 className={cx(
                   "rounded-md px-2.5 py-1 text-[11px] font-bold transition",
-                  resume.template_id === t.template_id ? "bg-ink-900 text-paper-50 shadow-sm" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
+                  resume.template_id === t.template_id ? "bg-brand-600 text-white shadow-sm" : "text-ink-500 hover:bg-paper-200 hover:text-ink-800"
                 )}
                 title={t.description}
               >
