@@ -86,13 +86,21 @@ function RichField({
 
 /** 轻量行内富文本编辑器：contentEditable + 加粗/斜体工具栏，输出消毒后的 HTML。
  *  与预览端 renderRich 配合，实现「要点/描述统一为富文本、可自定义加粗」。
- *  通过 emittingRef 避免自产自销：用户输入时不会重设 innerHTML，防止光标跳到末尾。 */
+ *
+ *  受控同步策略：聚焦即真相（半受控）。用户正在输入时 document.activeElement
+ *  就是编辑器本体，此时 value 变化一律不重写 innerHTML —— 彻底消除「每次按键
+ *  setState → effect 重写 DOM → 光标被重置到末尾/开头」的竞争窗口。这也是历史上
+ *  「要点无法编辑 / 长描述打不进字」类问题的共同根因：早期用 emittingRef +
+ *  setTimeout(0) 做时间窗防抖，若 effect 恰好在防抖重置之后执行仍会重写 DOM，
+ *  时序敏感、难以复现。外部程序性修改（AI 建议、撤销）几乎都发生在失焦状态，
+ *  失焦后 effect 照常同步，功能不受影响。 */
 function RichTextEditor({ value, onChange, placeholder, className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const emittingRef = useRef(false);
   useEffect(() => {
     const el = ref.current;
-    if (!el || emittingRef.current) return;
+    if (!el) return;
+    // 正在编辑：DOM 即真相，禁止重写（否则光标/选区被重置，用户表现为「无法编辑」）
+    if (document.activeElement === el) return;
     const desired = prepEditorHtml(value);
     if (el.innerHTML !== desired) {
       el.innerHTML = desired;
@@ -101,11 +109,7 @@ function RichTextEditor({ value, onChange, placeholder, className }: { value: st
   const emit = () => {
     const el = ref.current;
     if (!el) return;
-    emittingRef.current = true;
     onChange(el.innerHTML);
-    window.setTimeout(() => {
-      emittingRef.current = false;
-    }, 0);
   };
   return (
     <div className="relative">
