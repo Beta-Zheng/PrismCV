@@ -456,13 +456,19 @@ export function BlockCard({
           )}
 
           {block.type === "summary" || block.type === "custom_text" ? (
-            <F label="描述（可加粗 / 斜体）" className="col-span-2">
+            /* 不能用 F（<label>）包 RichTextEditor：label 的 labeled control 会命中
+             * 工具栏的 B 按钮（button 是 labelable 元素），点击描述区域内任何非交互
+             * 内容都会被转发为对 B 的一次合成点击 —— execCommand("bold") 被意外执行、
+             * 焦点被按钮抢走，用户表现为「描述无法编辑」。要点区正是用了 div 包装
+             * 才一直正常。两处编辑器的结构必须保持一致（均为 div，见 BulletsEdit）。 */
+            <div className="col-span-2 min-w-0">
+              <span className="field-label">描述（可加粗 / 斜体）</span>
               <RichTextEditor
                 value={block.description}
                 onChange={(html) => patchBlock(resume.id, section.section_id, block.block_id, { description: html })}
                 placeholder="用 2–4 句话概括亮点，突出可度量的成果（选中可加粗）"
               />
-            </F>
+            </div>
           ) : null}
 
           {block.type === "skill_group" && (
