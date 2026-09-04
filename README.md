@@ -13,7 +13,15 @@
 
 The name is a pun on optics: a resume is a *prism* that splits your career into the spectrum a role is looking for — the same tricolor spectrum (`#38BDF8 → #6366F1 → #C084FC`) used across the UI's AI accents.
 
-<!-- ![PrismCV overview](docs/screenshot.png)  ← 在此放置演示截图（建议 1280×720） -->
+<p align="center">
+  <a href="https://beta-zheng.github.io/PrismCV/"><img src="https://img.shields.io/badge/▶_Live_Demo-beta--zheng.github.io%2FPrismCV-534AB7?style=for-the-badge" alt="Live Demo"></a>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="PrismCV 工作台首页" width="48%" />
+  &nbsp;
+  <img src="docs/screenshots/editor.png" alt="PrismCV A4 编辑器与 AI 建议面板" width="48%" />
+</p>
 
 ---
 
@@ -28,6 +36,11 @@ npm test              # unit tests (parser / jd / ai / utils / flows)
 ```
 
 Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to enable on-device model suggestions.
+
+### Live demo
+
+无需 clone，直接体验：👉 **https://beta-zheng.github.io/PrismCV/**
+每次 `git push` 到 `master` 后由 GitHub Actions 自动重新构建并部署。
 
 ### Highlights
 
