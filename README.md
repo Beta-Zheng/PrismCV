@@ -63,72 +63,6 @@ Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to 
 
 ---
 
-## 功能总览
-
-### 1. 工作台（简历创建与管理）
-
-| 功能 | 说明 | 实现位置 |
-|---|---|---|
-| 文件上传解析 | `.pdf / .docx / .md / .txt`，≤10MB，拖拽或点击，类型/大小校验 | `pages/Home.tsx`、`lib/parser.ts` |
-| 粘贴文本兜底 | 解析失败自动切换到粘贴页签，也可直接粘贴简历全文 | `pages/Home.tsx` |
-| 空白 / 示例简历 | 完全手动创建，或载入内置示例体验全流程（仅在主动点击时写入） | `lib/samples.ts` |
-| 简历列表 | 最近简历卡片：打开、复制、删除（级联清理 JD 与 AI 建议记录，二次确认） | `pages/Home.tsx`、`lib/store.ts` |
-
-解析流水线：校验 → 提取文本（pdfjs-dist / mammoth / 直接读取）→ 规则结构化 → 生成草稿。扫描件无可提取文本时明确提示并引导改用粘贴。解析状态机 pending→success/failed，失败可降级。
-
-### 2. 编辑器（三栏布局）
-
-| 功能 | 说明 | 实现位置 |
-|---|---|---|
-| 左栏 · 模块大纲 | 拖拽调整模块顺序、开关显隐、添加自定义模块，顺序实时同步预览与导出 | `components/panels.tsx` |
-| 中栏 · 模块编辑 | 8 类模块（基本信息/总结/工作/项目/教育/技能/证书/自定义），Block 增删、上移/下移、显隐、整卡拖拽排序 | `components/blocks.tsx` |
-| 全字段编辑 | 标题/副标题/起止时间/地点/描述/要点列表/技能标签；要点支持逐条上移下移删除 | `components/blocks.tsx` |
-| 富文本行内样式 | 描述与要点支持选中加粗/斜体（`**` 标记），预览渲染前经白名单消毒防 XSS | `lib/utils.ts`（`sanitizeInline`） |
-| 模块级要点样式 | 每个模块可独立切换 有序/圆点/菱形/箭头，未设置时继承全局默认 | `lib/store.ts`、`types.ts` |
-| 图片上传 | 头像、校徽（base64 本地存储，不上传服务器） | `components/blocks.tsx` |
-| 自动保存 | 停止输入约 1 秒后写入本地，顶栏显示保存时间戳 | `lib/store.ts` |
-| 全局错误边界 | 任何渲染异常显示可读错误卡片，本地数据不丢失 | `App.tsx` |
-
-### 3. 模板与主题
-
-- 三套模板：**现代单栏**（衬线姓名 + 主题色模块线 + 图标徽章）、**经典 ATS**（纯黑白、标准标题、实线下边框、技能纯文本，过筛率优先）、**学术双栏**（头像 + 校徽头区 + 圆形图标徽章，适合应届/学术）；
-- 主题色：5 个预设 + 自定义取色器（ATS 模板固定黑白，不提供主题色）；
-- 字号 13/14/15px 三档；字体：黑体/宋体/系统/楷体/等宽/仿宋（Noto Sans/Serif SC 内置打包）；
-- 密度：紧凑 / 中等 / 宽松；条头布局：标题·日期同行（row）/ 日期另起一行（stack）。
-
-### 4. 预览与 PDF 导出
-
-- A4（794×1123px @96dpi）实时预览，缩放档位 85% / 95% / 100%（最小档位与模板线宽约束耦合，见 `template.tsx` 的 `MIN_ZOOM`）；
-- 「打印 / 另存为 PDF」走系统打印管线：打印节点 portal 挂载到 body，A4 `@media print` 样式，中文正常、文本可选中复制；
-- 导出严格遵循当前模板、主题色、字号、字体、密度、模块顺序与显隐状态；推荐文件名 `resume_{姓名}_{日期}.pdf`。
-
-### 5. JD 匹配（本地规则引擎）
-
-右侧面板粘贴 JD → 「解析 JD」提取岗位名/职责/要求/技能/关键词/学历/年限 → 「分析匹配度」输出：综合分 + 四维评分（技能匹配 / 关键词覆盖 / 经历相关性 / 表达质量）、`missing_skills` / `missing_keywords` 清单与逐条优化建议。匹配完全由本地规则完成（`lib/jd.ts`），不依赖大模型。
-
-### 6. AI 单块建议
-
-在任一 Block 工具栏选择动作：**润色 / 改写 / 量化 / 缩短 / 扩写 / JD 对齐 / ATS 优化**（7 种）。
-
-- 建议以**原文 vs 建议 Diff** 展示，可接受、拒绝或编辑后接受，原内容永远不会被直接覆盖；
-- 模型不可达时自动降级为本地规则引擎并明确标注引擎来源；
-- 输出经 JSON Schema 校验，非法输出自动重试一次，仍失败则报错保留原文。
-
-### 7. 模型管理与隐私
-
-- 预置本地 Ollama 配置（`http://localhost:11434` + `qwen2.5:7b`），支持新增 OpenAI Compatible（`/v1/chat/completions`）外部模型；
-- 测试连接、启用/停用、删除；路由策略 `local_first`（默认）/ `ask_before_external` / `local_only`；
-- **外部模型默认关闭**；开启后每次外部调用前弹窗确认，界面始终提示正在使用的外部主机与调用次数；
-- API Key 界面掩码展示，不写入日志与备份文件。
-
-### 8. 数据管理
-
-- 本地数据概览（简历 / JD / AI 建议计数）与目录映射说明；
-- 下载 JSON 备份（含全部简历、JD、AI 建议记录、模型配置）、从备份恢复（格式校验）、清空全部数据（二次确认）；
-- 持久化基于 zustand persist（localStorage，键 `ai-resume-workbench-v1`），刷新不丢失。
-
----
-
 ## 使用指南
 
 ### 1. 创建简历（三种方式）
@@ -170,36 +104,11 @@ Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to 
 
 ---
 
-## 技术栈
-
-React 18 · TypeScript · Vite 6 · Tailwind CSS 4 · Zustand（persist 本地持久化）· dnd-kit（拖拽）· pdfjs-dist（PDF 提取）· mammoth（DOCX 提取）· Vitest（单元测试）
-
-## 项目结构
-
-```
-src/
-├── pages/            工作台 / 编辑器 / 模型与隐私 / 数据管理
-├── components/       Block 编辑器 · 面板（大纲/AI/JD）· 模板渲染 · UI 原子 · 图标
-├── lib/
-│   ├── parser.ts     文档解析（Parser 接口化 + 规则结构化）
-│   ├── jd.ts         JD 解析与匹配（本地规则）
-│   ├── ai.ts         LLM Gateway（Ollama / OpenAI Compatible / 路由 / 校验 / 规则兜底）
-│   ├── samples.ts    内置示例简历
-│   ├── store.ts      全局状态与本地持久化
-│   └── __tests__/    单元测试（parser / jd / ai / utils / flows）
-├── types.ts          数据模型（含模板、主题、AI 动作定义）
-└── App.tsx           应用外壳 + 全局错误边界
-```
-
----
 
 ## 名称由来
 
 **Prism**（棱镜）——一束白光穿过棱镜，被分成一条光谱，正如界面里那道 AI 光谱（`#38BDF8 → #6366F1 → #C084FC`）。简历也是一块棱镜：把真实的你，折射成机会想看到的样子。**CV** 直抒品类。
 
-## License
-
-[MIT](LICENSE) © 2026 PrismCV contributors（发布前请将版权署名替换为实际作者）
 
 ## Contributing
 
