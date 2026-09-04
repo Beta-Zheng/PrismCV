@@ -4,7 +4,7 @@
  * 现代单栏 / 经典 ATS 共用一套条目与模块渲染（EntryBody / SectionBlock），
  * 仅通过 TStyle 风格参数区分视觉，避免两份代码分叉导致字段遗漏（如 location）。
  * ------------------------------------------------------------------ */
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { Block, Resume, Section, SectionType, HeaderLayoutKey, BulletStyleKey } from "../types";
 import { cx, fontStack, densityVars, isRichHtml, resolveBulletStyle, sanitizeInline } from "../lib/utils";
 import { IconArrowRight, IconAward, IconBriefcase, IconFolderGit, IconGraduationCap, IconLayers, IconUser, IconWrench } from "./icons";
@@ -34,7 +34,8 @@ function dateRange(b: Block): string {
  * 细节多的图形（如书本翻页、引号弯钩）缩到这个尺寸会糊成一团，
  * 所以 summary 选人像而非书本 —— 后者还与 education 的学士帽语义重叠。
  */
-const SECTION_ICON: Partial<Record<SectionType, (props: { size?: number; className?: string }) => ReactNode>> = {
+type SectionIconProps = { size?: number; className?: string; style?: CSSProperties };
+const SECTION_ICON: Partial<Record<SectionType, (props: SectionIconProps) => ReactNode>> = {
   education: IconGraduationCap,
   work_experience: IconBriefcase,
   project_experience: IconFolderGit,
@@ -200,7 +201,7 @@ export const MIN_ZOOM = 0.85;
  * H 越大差异越小，且始终存在满覆盖的「实心核」把视觉锚定住。
  * 因此要保证 H × MIN_ZOOM ≥ 2px（跨 3～4 行，相对差 ≤ 33%，视觉不可辨）。
  */
-const RULE_PX_FADE = 2.6; // 羽化分隔带几何高度：2.6 × 0.85 = 2.21px ✓
+const RULE_PX_FADE = 5; // 柔化分隔带几何高度：5 × 0.85 = 4.25px ✓
 const RULE_PX_SOLID = 2.4; // ATS 实线下边框：2.4 × 0.85 = 2.04px ✓
 
 /**
@@ -225,29 +226,37 @@ if (import.meta.env.DEV) {
  * 模块标题右侧的分隔带。上一版是「3px 高、上下硬边、横向渐隐」的色块，
  * 横贯整栏，视觉重量压过了正文，被反馈「笨重、抢重点」。这一版改两处：
  *
- * 1. 纵向柔化：上下透明、中间实（trapezoid 剖面），色带没有硬边。
- *    - 观感上从「一条色块」变成「一道柔光」，同样高度下明显更轻；
- *    - 附带收益：硬边正是光栅化相位差最敏感的地方（边缘那一行在「有 / 无」
- *      之间翻转，是肉眼最容易察觉的跳变）。去掉硬边后，相位变化只是把一个
- *      平滑剖面整体平移，各模块之间的粗细差异进一步收敛。
- *    - 因此几何高度可以从 3px 收到 2.6px 而仍然满足 H × MIN_ZOOM ≥ 2px。
+ * 三个参数是一组，改任一个都要回头核对另两个：
  *
- * 2. 压低墨量：峰值不透明度 33%，且峰值只占高度的 42%～58%（约 0.42px），
- *    上下各 1.09px 是 0 → 33% 的斜坡。单位宽度的墨量约 0.50，
- *    只有上一版（3px 实底 36%，墨量 1.08）的 46% —— 明显变淡但仍清晰可见。
+ * 1. 几何高度 5px（上一版 2.6px）。相位差的相对冲击 = 1 / 跨越行数：
+ *    2.6px 只跨 3～4 行（差 33%），5px 跨 5～6 行（差 17%），
+ *    且缩放后 4.25px 远大于 2px 下限，冗余充足。
  *
- * 3. 横向消隐用 mask 而非叠加第二层渐变：底色是白纸，叠加白色渐变会写死
- *    背景色。mask 在 Chromium 的打印管线里可用；万一失效，退化结果是
- *    「等宽的柔化色带」，观感可接受，不会破版。
+ * 2. 实心核占高度 40%（30%～70%），上一版只有 16%（42%～58%，约 0.42px）。
+ *    这是上一版真正的失误：几乎不存在满覆盖区间，整条带的厚度感知完全由
+ *    上下两段斜坡决定，而斜坡墨量低，边缘那一行在「可见 / 不可见」之间跳变，
+ *    比硬边的抖动更难收敛 —— 柔化做过了头，反而把不确定性从边缘扩大到整条。
+ *    现在有 2px 的实心核（×0.85 = 1.7px）锚定厚度，斜坡只负责柔化边界。
+ *
+ * 3. 峰值不透明度 15%（上一版 33%），高度翻了近一倍，靠压峰值把墨量拉回来：
+ *    单位宽度墨量 = 5 × 0.15 × 0.7 ≈ 0.53，与上一版（2.6 × 0.33 × 0.58 ≈ 0.50）
+ *    基本持平 —— 观感不变更重，但相位稳定性显著提升。
+
+ * 横向消隐继续用 mask 而非叠加第二层渐变：底色是白纸，叠加白色渐变会写死
+ * 背景色。mask 在 Chromium 的打印管线里可用；万一失效，退化结果是
+ * 「等宽的柔化色带」，观感可接受，不会破版。
  */
 function SectionRule({ color }: { color: string }) {
-  const fade = "linear-gradient(to right, #000 0%, #000 32%, transparent 100%)";
+  // 横向消隐用绝对长度而非百分比：各模块标题字数不同 → 剩余给线的宽度不同，
+  // 百分比渐隐会让短线比长线「陡」，头部实心段占比不一致，看起来深浅不同。
+  // 固定 px 后所有线的头部形态完全一致，差异只体现在尾部剩余长度上（越靠右越淡）。
+  const fade = "linear-gradient(to right, #000 0, #000 40px, transparent 168px)";
   return (
     <span
       className="flex-1"
       style={{
         height: RULE_PX_FADE,
-        background: `linear-gradient(to bottom, ${color}00 0%, ${color}54 42%, ${color}54 58%, ${color}00 100%)`,
+        background: `linear-gradient(to bottom, ${color}00 0%, ${color}26 30%, ${color}26 70%, ${color}00 100%)`,
         WebkitMaskImage: fade,
         maskImage: fade,
       }}
@@ -266,12 +275,15 @@ function SectionBadge({ section, color, shape }: { section: Section; color: stri
   return (
     <span
       className="flex h-[1.25em] w-[1.25em] shrink-0 items-center justify-center"
-      style={{ background: color, borderRadius: shape === "circle" ? "9999px" : "0.3em" }}
+      // 淡底 + 实心图标：分隔带淡化后，满色徽章成了标题行里唯一的饱和实心块，
+      // 会反过来抢走视线。底色调到约 8% 让整块退到背景层，只留图标用满色
+      // 承担「模块身份锚点」的作用 —— 焦点面积小了，但辨识度没丢。
+      style={{ background: `${color}14`, borderRadius: shape === "circle" ? "9999px" : "0.3em" }}
     >
       {Icon ? (
-        <Icon className="h-[0.68em] w-[0.68em] text-white" />
+        <Icon className="h-[0.68em] w-[0.68em]" style={{ color }} />
       ) : (
-        <span className="h-[0.3em] w-[0.3em] rounded-full bg-white" />
+        <span className="h-[0.3em] w-[0.3em] rounded-full" style={{ background: color }} />
       )}
     </span>
   );
