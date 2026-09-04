@@ -15,7 +15,7 @@ export function Btn({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant }) {
   const styles: Record<BtnVariant, string> = {
     primary: "bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-900/20",
-    dark: "bg-ink-900 text-paper-50 hover:bg-ink-800",
+    dark: "bg-brand-700 text-white hover:bg-brand-800 shadow-sm shadow-brand-900/25",
     ghost: "text-ink-600 hover:bg-ink-900/5 hover:text-ink-900",
     outline: "border border-ink-200 bg-white/70 text-ink-800 hover:border-ink-300 hover:bg-white",
     danger: "border border-danger-600/30 bg-danger-100/60 text-danger-700 hover:bg-danger-100",
@@ -158,7 +158,7 @@ export function ScoreRing({ score, size = 92, label }: { score: number; size?: n
   return (
     <div className="relative inline-flex flex-col items-center">
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-paper-200)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-line)" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}

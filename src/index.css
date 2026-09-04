@@ -1,54 +1,92 @@
 @import "tailwindcss";
 
+/* ============================================================
+   v1.4 设计系统 · 「静默画布 × 电光 AI」
+   命名沿用 v1.0（ink/brand/danger/seal）以减少 2100+ 处 Tailwind 类的改动，
+   仅替换 hex 为 v1.4 调色（靛蓝 + 暖中性灰）。
+   新增 token 为 v1.4 特有：sp-*（AI 光谱）、page/surface/subtle/line、ok/info/bad。
+   ============================================================ */
 @theme {
+  /* ----- 字体 ----- */
   --font-sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  --color-ink-950: #0b1110;
-  --color-ink-900: #101817;
-  --color-ink-850: #151f1d;
-  --color-ink-800: #1b2624;
-  --color-ink-700: #263330;
-  --color-ink-600: #35443f;
-  --color-ink-500: #4d5d57;
-  --color-ink-400: #6d7d76;
-  --color-ink-300: #93a29b;
-  --color-ink-200: #c3cdc8;
-  --color-ink-100: #e1e7e3;
+  /* ----- 画布与表面（v1.4 新增） ----- */
+  --color-page: #FAFAF7;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F4F4F0;
+  --color-line: #E7E7E2;
+  --color-line-strong: #D8D8D2;
 
-  --color-paper-25: #fbfcfa;
-  --color-paper-50: #f7f9f6;
-  --color-paper-100: #f0f3ee;
-  --color-paper-200: #e5eae3;
-  --color-paper-300: #d5ddd3;
+  /* ----- paper（旧纸色家族 · 用作"卡片底/浅表面"语义）-----
+     与 surface 同样的暖中性，保留旧名以避免破坏 paper-* 的 168 处使用 */
+  --color-paper-25: #FCFCFA;
+  --color-paper-50: #F8F8F4;
+  --color-paper-100: #FAFAF7;
+  --color-paper-200: #F4F4F0;
+  --color-paper-300: #E7E7E2;
 
-  --color-brand-50: #ecf7f4;
-  --color-brand-100: #d3ece6;
-  --color-brand-200: #a6d9cd;
-  --color-brand-300: #6fbfb0;
-  --color-brand-400: #3ba392;
-  --color-brand-500: #178a79;
-  --color-brand-600: #0e7a6c;
-  --color-brand-700: #0b6157;
-  --color-brand-800: #0c4d46;
-  --color-brand-900: #0d403b;
+  /* ----- ink（灰阶）
+     ink-400 = 承载文字的最淡灰（#FAFAF7 上 5.48:1，过 AA）
+     ink-300 = 仅供纯装饰（拖点/分隔符/列表符号），1.96:1，禁止承载任何文字 ----- */
+  --color-ink-900: #1B1C1F;
+  --color-ink-800: #2A2C33;
+  --color-ink-700: #3F4147;
+  --color-ink-600: #4A4C53;
+  --color-ink-500: #6E7076;
+  --color-ink-400: #64666D;
+  --color-ink-300: #B3B5BB;
+  --color-ink-200: #D8D8D2; /* 分隔线色（line-strong 同色） */
+  --color-ink-100: #F4F4F0; /* hover 底（subtle 同色） */
 
-  --color-seal-100: #fdecd8;
-  --color-seal-500: #d97a16;
-  --color-seal-600: #b96210;
-  --color-seal-700: #92490d;
+  /* ----- brand → ind 靛蓝家族 ----- */
+  --color-brand-50:  #EEF0FE;
+  --color-brand-100: #E0E3FD;
+  --color-brand-200: #C3C8FB;
+  --color-brand-300: #A5A9F0;
+  --color-brand-400: #7B82E8;
+  --color-brand-500: #6366F1;
+  --color-brand-600: #4F46E5;
+  --color-brand-700: #4338CA;
+  --color-brand-800: #3730A3;
+  --color-brand-900: #312E81;
 
-  --color-danger-100: #fbe3e1;
-  --color-danger-600: #bb3a32;
-  --color-danger-700: #9c2f28;
+  /* ----- seal → warn 警告（v1.4 命名收敛） ----- */
+  --color-seal-100: #FCF3E3;
+  --color-seal-500: #D97706;
+  --color-seal-600: #B45309;
+  --color-seal-700: #92490D;
+
+  /* ----- danger → bad 危险（v1.4 命名收敛） ----- */
+  --color-danger-100: #FCEAEA;
+  --color-danger-600: #DC2626;
+  --color-danger-700: #B91C1C;
+
+  /* ----- AI 光谱（v1.4 新增 · 仅 AI 元素使用） ----- */
+  --color-sp-a: #38BDF8;
+  --color-sp-b: #6366F1;
+  --color-sp-c: #C084FC;
+  --color-ok: #0E9F6E;
+  --color-ok-bg: #E6F6EF;
+  --color-warn: #D97706;
+  --color-warn-bg: #FCF3E3;
+  --color-bad: #DC2626;
+  --color-bad-bg: #FCEAEA;
+  --color-info: #2563EB;
+  --color-info-bg: #E8F1FD;
+
+  /* ----- 圆角 ----- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--color-paper-100);
+  background: var(--color-page);
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -68,7 +106,7 @@ body {
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--color-ink-200);
+  background: var(--color-line-strong);
   border-radius: 8px;
 }
 *::-webkit-scrollbar-thumb:hover {

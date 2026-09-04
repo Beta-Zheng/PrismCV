@@ -76,11 +76,11 @@ export default function Settings() {
           </pre>
         </section>
 
-        {/* 隐私 */}
+        {/* 隐私（v1.4：深靛底替代纯黑，属靛蓝家族不违反墨色减法） */}
         <section className="anim-fade-up flex flex-col gap-3" style={{ animationDelay: "0.1s" }}>
-          <div className="rounded-2xl border border-ink-200 bg-ink-900 p-5 text-paper-100">
+          <div className="rounded-2xl border border-brand-800 bg-brand-800 p-5 text-white">
             <h2 className="flex items-center gap-2 text-[15px] font-bold">
-              <IconLock size={16} className="text-brand-300" /> 隐私承诺
+              <IconLock size={16} className="text-brand-200" /> 隐私承诺
             </h2>
             <ul className="mt-3 flex flex-col gap-2">
               {[
@@ -90,14 +90,14 @@ export default function Settings() {
                 "外部模型必须显式开启并逐次提示",
                 "日志不记录完整 API Key 与简历全文",
               ].map((t) => (
-                <li key={t} className="flex items-start gap-2 text-[12px] leading-relaxed text-paper-200">
-                  <IconCheck size={13} className="mt-0.5 shrink-0 text-brand-300" /> {t}
+                <li key={t} className="flex items-start gap-2 text-[12px] leading-relaxed text-white/85">
+                  <IconCheck size={13} className="mt-0.5 shrink-0 text-brand-200" /> {t}
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex items-center justify-between rounded-xl bg-ink-800 px-3.5 py-2.5">
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-brand-900 px-3.5 py-2.5">
               <span className="flex items-center gap-2 text-[12px] font-medium">
-                <IconShield size={14} className={privacy.allowExternal ? "text-seal-500" : "text-brand-300"} />
+                <IconShield size={14} className={privacy.allowExternal ? "text-seal-500" : "text-brand-200"} />
                 允许外部模型
               </span>
               <Toggle checked={privacy.allowExternal} onChange={(v) => { setPrivacy({ allowExternal: v }); app.toast(v ? "warn" : "ok", v ? "外部模型已开启" : "外部模型已关闭"); }} label="允许外部模型" />

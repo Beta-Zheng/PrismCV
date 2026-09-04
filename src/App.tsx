@@ -17,24 +17,24 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   render() {
     if (this.state.error) {
       return (
-        <div className="flex h-screen items-center justify-center bg-paper-100 p-6" style={{ fontFamily: '"Noto Sans SC", "PingFang SC", sans-serif' }}>
-          <div className="w-full max-w-md rounded-2xl border border-ink-200 bg-white p-6 shadow-2xl shadow-ink-950/10">
+        <div className="flex h-screen items-center justify-center bg-page p-6" style={{ fontFamily: '"Noto Sans SC", "PingFang SC", sans-serif' }}>
+          <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-2xl shadow-ink-900/10">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-danger-100 text-danger-600">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-danger-100 text-danger-700">
                 <IconAlert size={18} />
               </span>
               <div>
-                <h1 className="text-[16px] font-bold" style={{ color: "#101817" }}>页面渲染出错了</h1>
-                <p className="text-[11px]" style={{ color: "#6d7d76" }}>应用遇到了意外错误，你的本地数据不会丢失</p>
+                <h1 className="text-[16px] font-bold" style={{ color: "#1B1C1F" }}>页面渲染出错了</h1>
+                <p className="text-[11px]" style={{ color: "#6E7076" }}>应用遇到了意外错误，你的本地数据不会丢失</p>
               </div>
             </div>
-            <pre className="mt-4 max-h-32 overflow-auto rounded-lg p-3 font-mono text-[11px] leading-relaxed" style={{ background: "#f0f3ee", color: "#9c2f28" }}>
+            <pre className="mt-4 max-h-32 overflow-auto rounded-lg p-3 font-mono text-[11px] leading-relaxed" style={{ background: "#F4F4F0", color: "#B91C1C" }}>
               {this.state.error.message || String(this.state.error)}
             </pre>
             <button
               onClick={() => window.location.reload()}
               className="mt-4 w-full rounded-md px-3 py-2 text-[13px] font-medium text-white transition active:scale-[0.98]"
-              style={{ background: "#0e7a6c" }}
+              style={{ background: "#4338CA" }}
             >
               重新加载应用
             </button>
@@ -52,11 +52,11 @@ function NavItem({ active, onClick, icon, label }: { active: boolean; onClick: (
       onClick={onClick}
       className={cx(
         "group relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
-        active ? "bg-ink-800 text-paper-50" : "text-ink-300 hover:bg-ink-850 hover:text-paper-100"
+        active ? "bg-brand-50 text-brand-700" : "text-ink-500 hover:bg-subtle hover:text-ink-900"
       )}
     >
-      {active && <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-brand-400" />}
-      <span className={cx("transition-colors", active ? "text-brand-300" : "text-ink-400 group-hover:text-brand-300")}>{icon}</span>
+      {active && <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-brand-500" />}
+      <span className={cx("transition-colors", active ? "text-brand-600" : "text-ink-400 group-hover:text-brand-600")}>{icon}</span>
       {label}
     </button>
   );
@@ -84,15 +84,15 @@ function AppShell() {
   const activeKey = view.name === "editor" ? "home" : view.name;
 
   return (
-    <div id="app-root" className="flex h-screen overflow-hidden bg-paper-100">
-      {/* 侧边导航 */}
-      <nav className="flex w-[196px] shrink-0 flex-col border-r border-ink-800 bg-ink-900">
+    <div id="app-root" className="flex h-screen overflow-hidden bg-page">
+      {/* 侧边导航（v1.4 浅色化：surface 底 + line 分隔，墨色退出填充块） */}
+      <nav className="flex w-[232px] shrink-0 flex-col border-r border-line bg-surface">
         <div className="flex items-center gap-2.5 px-4 pb-5 pt-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white shadow-lg shadow-brand-900/40">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700 ring-1 ring-brand-200">
             <IconLogo size={19} />
           </span>
           <div>
-            <p className="font-display text-[16px] font-black leading-none text-paper-50">AI Resume</p>
+            <p className="font-display text-[16px] font-black leading-none text-ink-900">AI Resume</p>
             <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400">local workbench</p>
           </div>
         </div>
@@ -104,16 +104,16 @@ function AppShell() {
         </div>
 
         <div className="mt-auto px-2.5 pb-2.5">
-          <div className="rounded-xl bg-ink-850 px-3 py-3 ring-1 ring-ink-800">
-            <p className="flex items-center gap-1.5 text-[11px] font-bold text-paper-100">
-              <IconShield size={13} className={privacy.allowExternal ? "text-seal-500" : "text-brand-300"} />
+          <div className="rounded-xl bg-subtle px-3 py-3 ring-1 ring-line">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold text-ink-900">
+              <IconShield size={13} className={privacy.allowExternal ? "text-seal-600" : "text-brand-600"} />
               {privacy.allowExternal ? "外部模型已开启" : "本地模式"}
             </p>
-            <p className="mt-1 text-[10px] leading-relaxed text-ink-400">
+            <p className="mt-1 text-[10px] leading-relaxed text-ink-500">
               {privacy.allowExternal ? "本地模型不可用时可能发起外部请求，调用前会提示。" : "数据不出本机，不发起任何外部请求。"}
             </p>
             <div className="mt-2 flex items-center gap-1.5 font-mono text-[9.5px] text-ink-500">
-              <span className={cx("h-1.5 w-1.5 rounded-full", privacy.allowExternal ? "bg-seal-500" : "anim-pulse-dot bg-brand-400")} />
+              <span className={cx("h-1.5 w-1.5 rounded-full", privacy.allowExternal ? "bg-seal-600" : "anim-pulse-dot bg-brand-500")} />
               {resumeCount} resume(s) on disk
             </div>
           </div>

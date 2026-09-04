@@ -176,7 +176,7 @@ export default function Home() {
           style={{ animationDelay: "0.05s" }}
         >
           <div className="flex items-start justify-between">
-            <span className={cx("flex h-11 w-11 items-center justify-center rounded-xl transition-colors", dragOver ? "bg-brand-600 text-white" : "bg-ink-900 text-paper-50 group-hover:bg-brand-600")}>
+            <span className={cx("flex h-11 w-11 items-center justify-center rounded-xl transition-colors", dragOver ? "bg-brand-600 text-white" : "bg-brand-700 text-white group-hover:bg-brand-600")}>
               <IconUpload size={20} />
             </span>
             <span className="chip bg-paper-200 font-mono text-[10px] text-ink-500">≤ 10MB</span>
@@ -215,7 +215,7 @@ export default function Home() {
                 toast("ok", "已创建空白简历");
                 go({ name: "editor", resumeId: id });
               }}
-              className="anim-fade-up group flex flex-1 items-center justify-center gap-2 rounded-2xl border border-ink-200 bg-paper-25 px-3 py-3 text-[13px] font-bold text-ink-700 transition-all duration-200 hover:border-ink-400 hover:bg-ink-900 hover:text-paper-50"
+              className="anim-fade-up group flex flex-1 items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-3 py-3 text-[13px] font-bold text-brand-700 transition-all duration-200 hover:border-brand-600 hover:bg-brand-600 hover:text-white"
               style={{ animationDelay: "0.15s" }}
             >
               <IconPlus size={14} /> 空白简历
@@ -244,7 +244,7 @@ export default function Home() {
 
         {resumes.length === 0 ? (
           <div className="anim-fade-up flex flex-col items-center rounded-2xl border border-ink-200 bg-paper-25 px-6 py-12 text-center">
-            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-ink-900 text-paper-50">
+            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-700">
               <IconFile size={24} />
             </span>
             <p className="text-[15px] font-bold text-ink-800">还没有简历</p>
@@ -288,13 +288,13 @@ export default function Home() {
         )}
       </section>
 
-      {/* 流程说明条 */}
-      <div className="anim-fade-up mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-ink-200 bg-ink-900 px-5 py-3.5" style={{ animationDelay: "0.25s" }}>
+      {/* 流程说明条（v1.4 浅色化：subtle 底 + 靛蓝编号，墨色退出填充块） */}
+      <div className="anim-fade-up mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-line bg-subtle px-5 py-3.5" style={{ animationDelay: "0.25s" }}>
         {["上传 / 粘贴", "结构化解析", "编辑 + 拖拽排序", "JD 匹配 & AI 建议", "模板预览", "PDF 导出"].map((s, i) => (
-          <span key={s} className="flex items-center gap-2 text-[11.5px] font-medium text-paper-200">
+          <span key={s} className="flex items-center gap-2 text-[11.5px] font-medium text-ink-700">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 font-mono text-[10px] font-bold text-white">{i + 1}</span>
             {s}
-            {i < 5 && <IconArrowRight size={11} className="ml-3 text-ink-600" />}
+            {i < 5 && <IconArrowRight size={11} className="ml-3 text-ink-400" />}
           </span>
         ))}
       </div>
