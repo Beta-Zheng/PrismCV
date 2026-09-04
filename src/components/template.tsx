@@ -165,6 +165,24 @@ function EntryBody({ block, style }: { block: Block; style: TStyle }) {
   );
 }
 
+/**
+ * 模块标题右侧的延伸分隔线，各模板共用（避免每处各写一份导致走样）。
+ *
+ * 线宽为什么是 1.8px：编辑器预览对整页套了 transform: scale(0.62/0.78/0.92)，
+ * 缩放后线宽 = 1.8 × zoom = 1.12 / 1.40 / 1.66px。各模块起始 y 坐标由前置内容
+ * 累加得出，小数部分各不相同，因此每条线落在像素网格上的相位也不同，抗锯齿会
+ * 按覆盖比例把线拆到相邻像素行上：
+ *   - 缩放后线宽 < 1px（如旧的 1.5px × 0.62 = 0.93px）时，整条线都靠覆盖率分配
+ *     灰度，相位一变就在「1 行实线」和「2 行各半的淡线」之间跳变，观感粗细不一；
+ *   - 缩放后 ≥ 1px 时，无论相位如何都至少有 1 个满覆盖像素行（实心核），
+ *     视觉上恒为一条实线，相位只影响极淡的边缘余量，粗细稳定。
+ * 取 1.8px 是保证最小缩放 0.62 下仍有实心核的最小值，同时 100%（打印/导出）
+ * 下仍是细线。同理不加圆角：圆角会削掉线两端，标题越长削得越明显。
+ */
+function SectionRule({ color }: { color: string }) {
+  return <span className="h-[1.8px] flex-1" style={{ background: `${color}40` }} />;
+}
+
 function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
   const blocks = visibleBlocks(section);
   if (section.type === "summary" && !blocks.some((b) => b.description)) return null;
@@ -184,7 +202,7 @@ function SectionBlock({ section, style }: { section: Section; style: TStyle }) {
       >
         {!isATS && <span className="inline-block h-[1em] w-[4px] rounded-full" style={{ background: color }} />}
         {section.title}
-        {!isATS && <span className="h-[1.5px] flex-1 rounded-full" style={{ background: `${color}30` }} />}
+        {!isATS && <SectionRule color={color} />}
       </h2>
       {blocks.map((b) => (
         <EntryBody key={b.block_id} block={b} style={secStyle} />
@@ -207,7 +225,7 @@ function AcademicSectionBlock({ section, color, headerLayout, bulletStyle }: { s
           {Icon ? <Icon size={12} className="text-white" /> : <span className="h-[0.35em] w-[0.35em] rounded-full bg-white" />}
         </span>
         {section.title}
-        <span className="h-[1.5px] flex-1 rounded-full" style={{ background: `${color}30` }} />
+        <SectionRule color={color} />
       </h2>
       {blocks.map((b) => (
         <div key={b.block_id} className="mb-[var(--entry-gap)] break-inside-avoid">
