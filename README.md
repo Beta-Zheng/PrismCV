@@ -45,7 +45,6 @@ Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to 
 ### Live demo
 
 无需 clone，直接体验：👉 **https://beta-zheng.github.io/PrismCV/**
-每次 `git push` 到 `master` 后由 GitHub Actions 自动重新构建并部署。
 
 ### Highlights
 
@@ -63,8 +62,6 @@ Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to 
 | Modern | 现代单栏：serif name + themed section rules + icon badges |
 | Classic ATS | 经典黑白：standard headings, plain-text skills — built for parser-first screening |
 | Academic | 学术双栏：photo header, circular icon badges — suits graduates & academia |
-
-> Full Chinese documentation below. 中文完整文档如下。
 
 ---
 
@@ -87,7 +84,7 @@ Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to 
 
 ### 3. 模块拖拽排序
 
-左侧大纲与编辑区拖拽手柄均可调整 Section 顺序，松手即按 `order` 升序持久化；隐藏模块保留位置；重新打开、切换模板、导出 PDF 均与编辑器顺序一致。
+左侧大纲与编辑区拖拽手柄均可调整 Section 顺序；隐藏模块保留位置；重新打开、切换模板、导出 PDF 均与编辑器顺序一致。
 
 ### 4. 配置模型
 
