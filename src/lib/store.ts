@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AIAction, Block, JD, ModelProvider, Resume, ResumeData, RouteStrategy, Section, Suggestion } from "../types";
+import type { AIAction, Block, BulletStyleKey, JD, ModelProvider, Resume, ResumeData, RouteStrategy, Section, Suggestion } from "../types";
 import { nowISO, uid } from "./utils";
 import { buildResumeSummary, generateWithLLM, ruleSuggestion, selectProvider, defaultModels } from "./ai";
 
@@ -47,6 +47,8 @@ interface AppState {
   renameResume: (id: string, title: string) => void;
   setTemplate: (id: string, templateId: string) => void;
   setTheme: (id: string, patch: Partial<Resume["theme"]>) => void;
+  setAvatar: (id: string, url: string | null) => void;
+  setSchoolBadge: (id: string, url: string | null) => void;
 
   patchBasic: (resumeId: string, patch: Partial<ResumeData["basic_info"]>) => void;
   patchBlock: (resumeId: string, sectionId: string, blockId: string, patch: Partial<Block>) => void;
@@ -56,6 +58,8 @@ interface AppState {
   reorderSections: (resumeId: string, orderedIds: string[]) => void;
   toggleSection: (resumeId: string, sectionId: string) => void;
   renameSection: (resumeId: string, sectionId: string, title: string) => void;
+  /** 模块级要点样式；传 null 表示恢复为「跟随全局默认」 */
+  setSectionBulletStyle: (resumeId: string, sectionId: string, style: BulletStyleKey | null) => void;
   addSection: (resumeId: string, title: string) => void;
   deleteSection: (resumeId: string, sectionId: string) => void;
 
@@ -148,7 +152,7 @@ export const useApp = create<AppState>()(
           title: title || data.basic_info.name || "未命名简历",
           data: { ...data, metadata: { ...data.metadata, created_at: now } },
           template_id: "modern_single_column",
-          theme: { primary_color: "#0e7a6c", font_size: 14 },
+          theme: { primary_color: "#0e7a6c", font_size: 14, font_family: "sans", density: "medium", header_layout: "row", bullet_style: "diamond" },
           created_at: now,
           updated_at: now,
         };
@@ -183,6 +187,8 @@ export const useApp = create<AppState>()(
       renameResume: (id, title) => set((s) => withResume(s, id, (r) => ({ ...r, title }))),
       setTemplate: (id, templateId) => set((s) => withResume(s, id, (r) => ({ ...r, template_id: templateId }))),
       setTheme: (id, patch) => set((s) => withResume(s, id, (r) => ({ ...r, theme: { ...r.theme, ...patch } }))),
+      setAvatar: (id, url) => set((s) => withResume(s, id, (r) => ({ ...r, data: { ...r.data, avatar_url: url ?? "" } }))),
+      setSchoolBadge: (id, url) => set((s) => withResume(s, id, (r) => ({ ...r, data: { ...r.data, school_badge_url: url ?? "" } }))),
 
       patchBasic: (resumeId, patch) =>
         set((s) => withResume(s, resumeId, (r) => ({ ...r, data: { ...r.data, basic_info: { ...r.data.basic_info, ...patch } } }))),
@@ -246,6 +252,20 @@ export const useApp = create<AppState>()(
 
       renameSection: (resumeId, sectionId, title) =>
         set((s) => withResume(s, resumeId, (r) => mapSection(r, sectionId, (sec) => ({ ...sec, title })))),
+
+      setSectionBulletStyle: (resumeId, sectionId, style) =>
+        set((s) =>
+          withResume(s, resumeId, (r) =>
+            mapSection(r, sectionId, (sec) => {
+              if (style === null) {
+                const next = { ...sec };
+                delete next.bullet_style;
+                return next;
+              }
+              return { ...sec, bullet_style: style };
+            })
+          )
+        ),
 
       addSection: (resumeId, title) =>
         set((s) =>
@@ -402,7 +422,7 @@ export const useApp = create<AppState>()(
               ...sec,
               blocks: sec.blocks.map((b) =>
                 b.block_id === sug.block_id
-                  ? { ...b, title: content.title, subtitle: content.subtitle, start_date: content.start_date, end_date: content.end_date, location: content.location, description: content.description, bullets: content.bullets, skills: content.skills, links: content.links }
+                  ? { ...b, title: content.title, subtitle: content.subtitle, start_date: content.start_date, end_date: content.end_date, location: content.location, description: content.description, bullets: content.bullets, skills: content.skills, links: content.links, bullet_marks: undefined }
                   : b
               ),
             }))

@@ -207,3 +207,104 @@ export const IconLock = (p: P) =>
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </>
   ));
+
+/** 教育经历：学士帽 */
+export const IconGraduationCap = (p: P) =>
+  base(p, (
+    <>
+      <path d="M22 10L12 5 2 10l10 5 10-5z" />
+      <path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" />
+      <path d="M22 10v5" />
+    </>
+  ));
+
+/** 工作经历：公文包 */
+export const IconBriefcase = (p: P) =>
+  base(p, (
+    <>
+      <rect x="3" y="7" width="14" height="12" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M3 12h14" />
+      <path d="M16 11v7a2 2 0 0 0 2 2h3a2 2 0 0 0 2-2v-7" />
+    </>
+  ));
+
+/** 项目经历：代码分支 */
+export const IconFolderGit = (p: P) =>
+  base(p, (
+    <>
+      <path d="M4 20h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4z" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="20" cy="15" r="2" />
+      <path d="M16 9v5a2 2 0 0 0 2 2h2" />
+      <path d="M16 9a2 2 0 0 1 2-2h2" />
+    </>
+  ));
+
+/** 证书奖项：奖章 */
+export const IconAward = (p: P) =>
+  base(p, (
+    <>
+      <circle cx="12" cy="9" r="5" />
+      <path d="M8.5 13.5L7 22l5-3 5 3-1.5-8.5" />
+    </>
+  ));
+
+/** 个人总结 / 自定义：书本 */
+export const IconBookOpen = (p: P) =>
+  base(p, (
+    <>
+      <path d="M3 4h9a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3z" />
+      <path d="M21 4h-9a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h9z" />
+    </>
+  ));
+
+/** 外观设置：调色板 */
+export const IconPalette = (p: P) =>
+  base(p, (
+    <>
+      <path d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2a2 2 0 0 0-2 2c0 1 .5 1 .5 2s-.7 2-2.5 2z" />
+      <circle cx="7.5" cy="11.5" r="1" />
+      <circle cx="10.5" cy="7.5" r="1" />
+      <circle cx="15" cy="7.5" r="1" />
+    </>
+  ));
+
+/** 外观设置：文字样式 */
+export const IconType = (p: P) =>
+  base(p, (
+    <>
+      <path d="M4 6V4h16v2" />
+      <path d="M12 4v16" />
+      <path d="M9 20h6" />
+    </>
+  ));
+
+/** 布局设置：行列排布 */
+export const IconLayout = (p: P) =>
+  base(p, (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M9 21V9" />
+    </>
+  ));
+
+/** 技能模块：扳手 */
+export const IconWrench = (p: P) =>
+  base(p, (
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+  ));
+
+/**
+ * 个人总结模块：人像。
+ * 原用书本图标，但书本更接近「教育 / 阅读」，与 education 的学士帽语义重叠；
+ * 人像在 11px 小尺寸下轮廓也比书本更清晰（书本的翻页细节缩小后会糊）。
+ */
+export const IconUser = (p: P) =>
+  base(p, (
+    <>
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </>
+  ));

@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { cx } from "./lib/utils";
 import { useApp, type View } from "./lib/store";
 import { ToastHost } from "./components/ui";
@@ -120,14 +121,22 @@ function AppShell() {
         </div>
       </nav>
 
-      {/* 主区域 */}
+      {/* 主区域：页面切换时淡入上移（AnimatePresence 处理退场），布局类移到 motion.div 保持各页 h-full 语义 */}
       <main className="min-w-0 flex-1 overflow-hidden">
-        <div className={cx("h-full overflow-y-auto", view.name === "editor" && "overflow-hidden")}>
-          {view.name === "home" && <Home />}
-          {view.name === "editor" && <Editor resumeId={view.resumeId} />}
-          {view.name === "models" && <Models />}
-          {view.name === "settings" && <Settings />}
-        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={view.name}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.12, ease: "easeIn" } }}
+            className={cx("h-full overflow-y-auto", view.name === "editor" && "overflow-hidden")}
+          >
+            {view.name === "home" && <Home />}
+            {view.name === "editor" && <Editor resumeId={view.resumeId} />}
+            {view.name === "models" && <Models />}
+            {view.name === "settings" && <Settings />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <ToastHost />

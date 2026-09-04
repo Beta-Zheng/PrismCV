@@ -130,6 +130,45 @@ body {
   }
 }
 
+/* contentEditable 富文本编辑器的占位符 */
+[contenteditable][data-ph]:empty::before {
+  content: attr(data-ph);
+  color: var(--color-ink-300);
+  pointer-events: none;
+}
+
+/* ---------- brand utilities ---------- */
+/* 墨绿主渐变：Logo / 主按钮 / 激活态共用一个方向与端点色，保证全局一致 */
+.bg-brand-gradient {
+  background-image: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-400));
+}
+.shadow-brand-glow {
+  box-shadow: 0 0 0 1px var(--color-brand-600), 0 4px 16px -4px rgb(79 70 229 / 0.45);
+}
+
+/* 统一键盘焦点环：全站所有可交互元素可见焦点（不改元素自身圆角） */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+/* 上传卡拖入时的流动边框：conic-gradient 旋转（Chromium 支持 @property） */
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes border-flow {
+  to { --border-angle: 360deg; }
+}
+.border-flow {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--color-brand-50), var(--color-brand-50)) padding-box,
+    conic-gradient(from var(--border-angle), var(--color-brand-400), var(--color-brand-200), var(--color-brand-400)) border-box;
+  animation: border-flow 1.6s linear infinite;
+}
+
 /* ---------- motion ---------- */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(10px); }
@@ -176,6 +215,17 @@ body {
   animation: shimmer 1.4s linear infinite;
 }
 
+/* 动效降级：系统开启「减少动态效果」时停掉一切动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .stagger > * { animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .stagger > *:nth-child(1) { animation-delay: 0.02s; }
 .stagger > *:nth-child(2) { animation-delay: 0.07s; }
@@ -186,6 +236,18 @@ body {
 .stagger > *:nth-child(7) { animation-delay: 0.32s; }
 .stagger > *:nth-child(8) { animation-delay: 0.37s; }
 
+/* ---------- 简历纸张排版细节 ---------- */
+.resume-sheet {
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+/* 要点/段落跨页时避免只剩一行（孤行/寡行） */
+.resume-sheet p,
+.resume-sheet li {
+  orphans: 2;
+  widows: 2;
+}
+
 /* ---------- print / PDF export ---------- */
 .print-only { display: none; }
 @media print {
@@ -193,4 +255,12 @@ body {
   html, body { background: #ffffff !important; }
   #app-root { display: none !important; }
   .print-only { display: block !important; }
+  /* 主题色块、日期胶囊、技能标签的背景色在打印/另存 PDF 时保留 */
+  .resume-sheet,
+  .resume-sheet * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* 模块标题不落在页尾（标题与内容不分离） */
+  .resume-sheet h2 { break-after: avoid; }
 }

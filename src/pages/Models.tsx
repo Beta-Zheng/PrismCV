@@ -159,7 +159,7 @@ export default function Models() {
       <section className="anim-fade-up rounded-2xl border border-ink-200 bg-paper-25 p-5" style={{ animationDelay: "0.05s" }}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", privacy.allowExternal ? "bg-seal-100 text-seal-600" : "bg-brand-50 text-brand-600")}>
+            <span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", privacy.allowExternal ? "bg-seal-100 text-seal-600" : "bg-brand-gradient text-white shadow-brand-glow")}>
               <IconShield size={19} />
             </span>
             <div>

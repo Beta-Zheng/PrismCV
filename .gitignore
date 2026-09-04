@@ -3,3 +3,14 @@ node_modules/
 dist/
 build/
 *.log
+
+# ---- MCP / Obsidian 调试遗留的临时文件 ----
+# .mcp.json 内含 API 密钥，严禁提交
+.mcp.json
+.trae/
+_*.*
+_vault_templates/
+scripts/
+dashboard-three-columns.css
+e2e/e2e-tmp/
+.zcode/

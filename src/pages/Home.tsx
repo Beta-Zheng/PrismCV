@@ -1,9 +1,12 @@
 import { useCallback, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { Resume, SourceKind } from "../types";
+import { TEMPLATES } from "../types";
 import { ACCEPT_EXTS, MAX_FILE_SIZE, extractFileText, structureResume, emptyResume, type SupportedExt } from "../lib/parser";
 import { buildSampleResume } from "../lib/samples";
 import { formatBytes, cx, timeAgo } from "../lib/utils";
 import { useApp } from "../lib/store";
+import { celebrate, celebrateBig } from "../lib/celebrate";
 import { Btn, Confirm, Modal, ModalHeader } from "../components/ui";
 import { IconArrowRight, IconCheck, IconClipboard, IconFile, IconLayers, IconPlus, IconShield, IconSpark, IconTrash, IconUpload, IconAlert, IconZap } from "../components/icons";
 
@@ -34,6 +37,7 @@ export default function Home() {
   const finishTo = useCallback(
     (data: ReturnType<typeof structureResume>, title: string) => {
       const id = createResume(data, title);
+      noteFirstResume();
       setModal(null);
       setPipe(null);
       setError(null);
@@ -127,9 +131,17 @@ export default function Home() {
   );
 
   const localModels = models.filter((m) => m.enabled && m.type !== "external").length;
+  const hadResumes = useRef(resumes.length > 0);
+  /** 从 0 → 1 创建首份简历：值得一个小庆祝（celebrateBig 自带 reduced-motion 降级） */
+  const noteFirstResume = () => {
+    if (!hadResumes.current) celebrateBig();
+    hadResumes.current = true;
+  };
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 pb-16 pt-8">
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 pb-16 pt-8">
+      {/* 页面右上角常驻品牌氛围光：低透明度径向渐变，不参与交互 */}
+      <div aria-hidden className="pointer-events-none absolute -top-10 right-0 -z-10 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
       {/* 顶部：工作台标题 + 隐私状态 */}
       <header className="anim-fade-up flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -171,7 +183,7 @@ export default function Home() {
           }}
           className={cx(
             "anim-fade-up group relative flex min-h-[190px] flex-col justify-between overflow-hidden rounded-2xl border-2 border-dashed p-5 text-left transition-all duration-200",
-            dragOver ? "border-brand-500 bg-brand-50 shadow-lg shadow-brand-900/10" : "border-ink-200 bg-paper-25 hover:border-brand-400 hover:bg-white hover:shadow-md hover:shadow-ink-950/5"
+            dragOver ? "border-flow" : "border-ink-200 bg-paper-25 hover:border-brand-400 hover:bg-white hover:shadow-md hover:shadow-ink-950/5"
           )}
           style={{ animationDelay: "0.05s" }}
         >
@@ -212,6 +224,7 @@ export default function Home() {
             <button
               onClick={() => {
                 const id = createResume(emptyResume(), "未命名简历");
+                noteFirstResume();
                 toast("ok", "已创建空白简历");
                 go({ name: "editor", resumeId: id });
               }}
@@ -223,10 +236,11 @@ export default function Home() {
             <button
               onClick={() => {
                 const id = createResume(buildSampleResume(), "陈墨（示例）");
+                noteFirstResume();
                 toast("ok", "已载入示例简历，可随意修改");
                 go({ name: "editor", resumeId: id });
               }}
-              className="anim-fade-up group flex flex-1 items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-3 py-3 text-[13px] font-bold text-brand-700 transition-all duration-200 hover:bg-brand-600 hover:text-white"
+              className="anim-fade-up group flex flex-1 items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-3 py-3 text-[13px] font-bold text-brand-700 transition-all duration-200 hover:bg-brand-gradient hover:text-white hover:shadow-brand-glow"
               style={{ animationDelay: "0.2s" }}
             >
               <IconSpark size={14} /> 载入示例
@@ -251,9 +265,17 @@ export default function Home() {
             <p className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-ink-400">上传一份现有简历，或从示例开始体验完整流程：解析 → 编辑 → JD 匹配 → AI 建议 → 导出。</p>
           </div>
         ) : (
-          <ul className="stagger flex flex-col gap-2">
-            {resumes.map((r) => (
-              <li key={r.id} className="group flex items-center gap-4 rounded-xl border border-ink-200 bg-paper-25 px-4 py-3 transition-all duration-150 hover:border-brand-300 hover:bg-white hover:shadow-md hover:shadow-ink-950/5">
+          <ul className="flex flex-col gap-2">
+            <AnimatePresence initial={false}>
+              {resumes.map((r) => (
+                <motion.li
+                  key={r.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } }}
+                  exit={{ opacity: 0, x: 40, transition: { duration: 0.18, ease: "easeIn" } }}
+                  className="group flex items-center gap-4 rounded-xl border border-ink-200 bg-paper-25 px-4 py-3 transition-colors duration-150 hover:border-brand-300 hover:bg-white"
+                >
                 <button onClick={() => go({ name: "editor", resumeId: r.id })} className="flex min-w-0 flex-1 items-center gap-4 text-left">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg font-display text-[17px] font-black" style={{ background: r.theme.primary_color + "1a", color: r.theme.primary_color }}>
                     {(r.data.basic_info.name || r.title).slice(0, 1)}
@@ -265,7 +287,7 @@ export default function Home() {
                     </span>
                     <span className="mt-0.5 flex items-center gap-2 font-mono text-[10.5px] text-ink-300">
                       <span>{timeAgo(r.updated_at)}更新</span>
-                      <span className="chip bg-paper-200 py-0 text-[10px]">{r.template_id === "classic_ats" ? "经典 ATS" : "现代单栏"}</span>
+                      <span className="chip bg-paper-200 py-0 text-[10px]">{TEMPLATES.find((t) => t.template_id === r.template_id)?.name ?? "自定义"}</span>
                       <span className="chip bg-paper-200 py-0 text-[10px]">{r.data.sections.filter((s) => s.visible).length} 个模块</span>
                       <span className="chip bg-paper-200 py-0 text-[10px]">来源 {r.data.metadata.source}</span>
                     </span>
@@ -282,8 +304,9 @@ export default function Home() {
                     <IconTrash size={15} />
                   </button>
                 </div>
-              </li>
+              </motion.li>
             ))}
+            </AnimatePresence>
           </ul>
         )}
       </section>
@@ -292,7 +315,7 @@ export default function Home() {
       <div className="anim-fade-up mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-line bg-subtle px-5 py-3.5" style={{ animationDelay: "0.25s" }}>
         {["上传 / 粘贴", "结构化解析", "编辑 + 拖拽排序", "JD 匹配 & AI 建议", "模板预览", "PDF 导出"].map((s, i) => (
           <span key={s} className="flex items-center gap-2 text-[11.5px] font-medium text-ink-700">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 font-mono text-[10px] font-bold text-white">{i + 1}</span>
+            <span className="bg-brand-gradient flex h-5 w-5 items-center justify-center rounded-full font-mono text-[10px] font-bold text-white">{i + 1}</span>
             {s}
             {i < 5 && <IconArrowRight size={11} className="ml-3 text-ink-400" />}
           </span>
@@ -317,7 +340,7 @@ export default function Home() {
               onDragLeave={() => setDragOver(false)}
               onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
               onClick={() => fileRef.current?.click()}
-              className={cx("flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all", dragOver ? "border-brand-500 bg-brand-50" : "border-ink-200 bg-paper-50 hover:border-brand-400 hover:bg-white")}
+              className={cx("flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all", dragOver ? "border-flow" : "border-ink-200 bg-paper-50 hover:border-brand-400 hover:bg-white")}
             >
               <IconUpload size={26} className={cx("mb-2 transition-colors", dragOver ? "text-brand-600" : "text-ink-300")} />
               <p className="text-[13.5px] font-bold text-ink-800">拖拽文件到这里，或点击选择</p>

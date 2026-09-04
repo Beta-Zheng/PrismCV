@@ -61,8 +61,39 @@ function isCjk(s: string): boolean {
   return CJK_RE.test(s);
 }
 
-export function joinPageItems(items: PageTextItem[]): string {
-  const lines = clusterLines(items);
+/** 把一页文本项按「栏」切分（基于 x 坐标的栏间空档）。
+ *  单栏页返回 [items]（不切分）；双栏页按最大的栏间空档切成左右两栏，
+ *  每栏各自按 y 降序排列，从而保证「左栏从上到下 → 右栏从上到下」的正确阅读顺序，
+ *  避免 clusterLines 把左右栏交错并成「同一视觉行」导致的顺序错乱。 */
+function splitIntoColumns(items: PageTextItem[]): PageTextItem[][] {
+  if (items.length < 6) return [items];
+  const meta = items.map((it) => {
+    const x = it.transform[4];
+    const w = it.width ?? 0;
+    return { x0: x, x1: x + w, xc: x + w / 2, it };
+  });
+  const minX = Math.min(...meta.map((m) => m.x0));
+  const maxX1 = Math.max(...meta.map((m) => m.x1));
+  const pageW = maxX1 - minX;
+  if (pageW < 120) return [items];
+  const sorted = [...meta].sort((a, b) => a.xc - b.xc);
+  // 项间空档大于阈值（页宽 8% 且绝对值 > 18）才视为栏间空档；过小仅是词/字间距
+  const gaps: Array<{ pos: number; size: number }> = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = sorted[i].x0 - sorted[i - 1].x1;
+    if (gap > Math.max(18, pageW * 0.08)) gaps.push({ pos: (sorted[i - 1].x1 + sorted[i].x0) / 2, size: gap });
+  }
+  if (!gaps.length) return [items];
+  // 取最大空档作为切分线（v1 单切分 → 两栏，覆盖绝大多数简历双栏场景）
+  const split = gaps.sort((a, b) => b.size - a.size)[0].pos;
+  const left = meta.filter((m) => m.xc < split).map((m) => m.it);
+  const right = meta.filter((m) => m.xc >= split).map((m) => m.it);
+  // 两侧都要有足够内容，否则视为单行内偶然的大间距（如拉开字距的标题），不切分
+  if (left.length < 2 || right.length < 2) return [items];
+  return [left, right];
+}
+
+function joinColumnLines(lines: PageTextItem[][]): string {
   const out: string[] = [];
   for (const ln of lines) {
     let line = "";
@@ -87,6 +118,13 @@ export function joinPageItems(items: PageTextItem[]): string {
     if (line.trim()) out.push(line.trim());
   }
   return out.join("\n");
+}
+
+export function joinPageItems(items: PageTextItem[]): string {
+  const columns = splitIntoColumns(items);
+  if (columns.length <= 1) return joinColumnLines(clusterLines(items));
+  // 多栏：每栏内部按 y 降序（上→下），栏与栏之间用空行隔开，保证阅读顺序正确
+  return columns.map((col) => joinColumnLines(clusterLines(col))).join("\n\n");
 }
 
 /* 多栏探测：clusterLines 会把同一 y 的左右栏并到「同一视觉行」，所以双栏的真实特征是
@@ -168,25 +206,44 @@ export async function extractFileText(file: File, ext: SupportedExt): Promise<Pa
 const HEADING_MAP: Array<{ type: SectionType; re: RegExp }> = [
   { type: "summary", re: /^(个人总结|个人简介|自我评价|自我总结|职业总结|summary|profile|about\s*me|objective)/i },
   { type: "work_experience", re: /^(工作经历|工作经验|职业经历|任职经历|work\s*experience|experience|employment)/i },
-  { type: "project_experience", re: /^(项目经历|项目经验|项目实践|projects?|project\s*experience)/i },
+  { type: "project_experience", re: /^(核心)?项目(?:经历|经验|实践)|projects?|project\s*experience/i },
   { type: "education", re: /^(教育经历|教育背景|学习经历|education)/i },
   { type: "skills", re: /^(专业技能|技能清单|技术栈|技能特长|技能|technical\s*skills|skills|technologies)/i },
   { type: "certifications", re: /^(证书奖项|荣誉证书|获奖情况|资格证书|证书|荣誉|奖项|certifications?|awards?|honors?)/i },
 ];
 
 const DATE_RANGE_RE =
-  /((?:19|20)\d{2})\s*[.\-/年]\s*(0?[1-9]|1[0-2])?\s*月?\s*(?:[-–—~至到]+\s*((?:19|20)\d{2})\s*[.\-/年]?\s*(0?[1-9]|1[0-2])?\s*月?|[-–—~至到]+\s*(至今|今|现在|present|now))/i;
-const DATE_SINGLE_RE = /((?:19|20)\d{2})\s*[.\-/年]\s*(0?[1-9]|1[0-2])?\s*月?/;
-const EMAIL_RE = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/;
+  /((?:19|20)\d{2})\s*[.\-/年]\s*(1[0-2]|0?[1-9])?\s*月?\s*(?:[-–—~至到]+\s*((?:19|20)\d{2})\s*[.\-/年]?\s*(1[0-2]|0?[1-9])?\s*月?|[-–—~至到]+\s*(至今|今|现在|present|now))/i;
+const DATE_SINGLE_RE = /((?:19|20)\d{2})\s*[.\-/年]\s*(1[0-2]|0?[1-9])?\s*月?/;
+const EMAIL_RE = /[^\s@]+@[\w-]+(?:\.[\w-]+)/;
 const PHONE_RE = /(?:\+?86[-\s]?)?1[3-9]\d[\s-]?\d{4}[\s-]?\d{4}|\d{3}[-.\s]\d{4}[-.\s]\d{4}/;
 const URL_RE = /(?:https?:\/\/)?(?:www\.)?[\w-]+\.(?:com|cn|io|dev|me|net|org|top)(?:\/\S*)?/i;
 
 function cleanLine(l: string): string {
-  return l.replace(/^#{1,4}\s*/, "").replace(/[*_`>]/g, "").trim();
+  return l.replace(/^#{1,4}\s*/, "").replace(/[_`>]/g, "").trim();
+}
+
+/** 剥离标题行的「包装」字符：emoji / 序号 / 括号说明 / 首尾标点，
+ *  仅保留可锚定 HEADING_MAP 的核心标题文本。例：
+ *  「💼 工作经历」→「工作经历」、「🚀 核心项目经历（选填，用于补充重大战役）」→「核心项目经历」。 */
+function stripHeadingWrapper(line: string): string {
+  let c = line.trim();
+  c = c.replace(/[（(][^）)]*[）)]\s*$/, ""); // 尾部括号说明，如（选填…）
+  c = c.replace(/^[^\u4e00-\u9fa5a-zA-Z0-9]+/, ""); // 首部非中英文数字（emoji、符号）
+  c = c.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]+$/, ""); // 尾部非中英文数字
+  c = c.replace(/^[【《\[（]\s*/, ""); // 左书名号/方括号
+  c = c.replace(/\s*[】》\]）]\s*$/, ""); // 右书名号/方括号
+  const hasDate = DATE_RANGE_RE.test(c) || DATE_SINGLE_RE.test(c);
+  if (!hasDate) {
+    c = c.replace(/^[一二三四五六七八九十百]+\s*[、.．)）]\s*/, ""); // 中文序号
+    c = c.replace(/^\d{1,2}\s*[.．)）]\s*/, ""); // 数字序号
+  }
+  c = c.replace(/^[\s]*[■●◆▎▪▫●○◇◆□■▪]\s*/, ""); // 项目符号
+  return c.trim();
 }
 
 function isHeadingLine(l: string): SectionType | null {
-  const c = cleanLine(l).replace(/[:：\s]+$/, "");
+  const c = stripHeadingWrapper(cleanLine(l)).replace(/[:：\s]+$/, "");
   // 长度上限放宽到 30，避免 "Technical Skills & Tools" 这类英文长标题被误判为非标题，
   // 同时仍排除明显是正文的超长句（标题通常由 HEADING_MAP 的已知模式锚定开头）
   if (c.length > 30) return null;
@@ -264,6 +321,12 @@ function isEntryHeader(l: string): boolean {
   if (isDateLine(l)) return false; // 纯日期行不是条目头（避免 "2020.03 - 2023.06" 被误判）
   return /^.{1,40}[—–-]\s*.{1,40}$/.test(l); // 仅非日期的「标题 - 副标题」形态
 }
+// 含日期且日期之后仍有实质内容（公司/职位）的行，视为新条目起点，
+// 例如「2023.07 - 至今 | 某公司 | 职位」；纯日期行（如「2020.03 - 2023.06」）不算。
+function isDateWithContent(l: string): boolean {
+  const d = parseDates(l);
+  return !!d.start && d.rest.trim().length >= 2;
+}
 
 function splitItems(lines: string[]): string[][] {
   const items: string[][] = [];
@@ -275,9 +338,10 @@ function splitItems(lines: string[]): string[][] {
       continue;
     }
     if (isDateLine(l)) {
-      // 纯日期行归属到当前条目；但「公司 | 职位 日期」这类同时是条目标题的行应另起一条
+      // 纯日期行归属到当前条目；含日期+内容的行（如「日期 | 公司 | 职位」）另起一条；
+      // 「公司 | 职位 日期」这类同时是条目标题的行也另起一条
       if (cur.length === 0) cur = [l];
-      else if (isEntryHeader(l)) { items.push(cur); cur = [l]; }
+      else if (isEntryHeader(l) || isDateWithContent(l)) { items.push(cur); cur = [l]; }
       else cur.push(l);
       continue;
     }
@@ -286,9 +350,11 @@ function splitItems(lines: string[]): string[][] {
       cur = [l];
       continue;
     }
-    const plainCount = cur.filter((x) => !isBulletLine(x) && !isDateLine(x)).length;
     const prevClosed = cur.some(isDateLine) || cur.some(isBulletLine);
-    if (isEntryHeader(l) || prevClosed || plainCount >= 2) {
+    // 上一条目已闭合（出现过日期/子弹点）后，遇到「短标题行」（≤24 字且无分隔符）视为新条目起点，
+    // 从而支持「公司 / 职位 / 日期分行」等版式；但长描述行视为续行，避免把多行纯文本描述拆散成幽灵条目。
+    const isEntryStart = isEntryHeader(l) || (prevClosed && l.trim().length <= 24 && !/[|｜—–\-：:]/.test(l));
+    if (isEntryStart) {
       items.push(cur);
       cur = [l];
     } else {
@@ -381,7 +447,9 @@ export function structureResume(rawText: string, source: ResumeData["metadata"][
   const phoneM = rawText.match(PHONE_RE);
   if (phoneM) basic.phone = phoneM[0].trim();
   const urlM = rawText.match(URL_RE);
-  if (urlM && (!basic.email || !urlM[0].includes(basic.email))) basic.website = urlM[0];
+  if (urlM && (!basic.email || !basic.email.includes(urlM[0]))) basic.website = urlM[0];
+  const locM = rawText.match(/(?:现居|所在地|居住|城市|地址)\s*[:：]\s*([\u4e00-\u9fa5A-Za-z]{2,10})/);
+  if (locM) basic.location = locM[1];
 
   // 姓名：优先「姓名：xxx」，否则取首个短行
   const nameKv = rawText.match(/姓\s*名[:：]\s*([\u4e00-\u9fa5A-Za-z·]{2,12})/);
@@ -460,7 +528,13 @@ export function structureResume(rawText: string, source: ResumeData["metadata"][
   const unclaimed = cur.type === "head" ? [] : [];
   void unclaimed;
 
-  return { basic_info: basic, sections, metadata: { source, source_name: sourceName, created_at: nowISO() } };
+  return {
+    basic_info: basic,
+    sections,
+    metadata: { source, source_name: sourceName, created_at: nowISO() },
+    avatar_url: "",
+    school_badge_url: "",
+  };
 }
 
 /** 空简历工厂 */

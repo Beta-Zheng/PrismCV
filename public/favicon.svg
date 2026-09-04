@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- AI Resume favicon：与 src/components/icons.tsx 的 IconLogo 同构（文档 + 折角 + 文字行） -->
+  <rect width="32" height="32" rx="7" fill="#0e7a6c"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 5H10a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <path d="M21 5v3h3"/>
+    <path d="M13 16h6M13 20h4"/>
+  </g>
+</svg>

@@ -31,6 +31,8 @@ export interface BasicInfo {
   phone: string;
   location: string;
   website: string;
+  /** 自定义信息项：固定六项之外的补充（如 期望薪资、政治面貌），随联系方式一行渲染 */
+  custom_fields?: Array<{ label: string; value: string }>;
 }
 
 /** 通用 Block 结构（§11.3） */
@@ -44,6 +46,10 @@ export interface Block {
   location: string;
   description: string;
   bullets: string[];
+  /** 与 bullets 平行的「是否显示列表符号」勾选标记；缺省 / 越界视为显示（兼容历史数据与 AI 生成） */
+  bullet_marks?: boolean[];
+  /** 追加副标题段：与 subtitle 合并后用 · 分隔渲染（subtitle 为首段，兼容历史数据） */
+  subtitles?: string[];
   skills: string[];
   links: string[];
   visible: boolean;
@@ -57,20 +63,58 @@ export interface Section {
   visible: boolean;
   order: number;
   blocks: Block[];
+  /** 该模块的要点列表样式（模块级自定义）；缺省时继承 theme.bullet_style */
+  bullet_style?: BulletStyleKey;
 }
 
 export interface ResumeData {
   basic_info: BasicInfo;
   sections: Section[]; // 渲染按 order 升序，再过滤 visible=false
   metadata: { source: SourceKind; source_name?: string; created_at: string };
+  /** 个人头像（base64 或外链），仅部分模板展示 */
+  avatar_url?: string;
+  /** 学校/机构徽标（base64 或外链），仅部分模板展示 */
+  school_badge_url?: string;
 }
+
+export type FontKey = "sans" | "serif" | "system" | "kai" | "mono" | "fangsong";
+export type DensityKey = "compact" | "medium" | "loose";
+export type HeaderLayoutKey = "row" | "stack";
+export type BulletStyleKey = "disc" | "diamond" | "arrow" | "ordered" | "square" | "check" | "circle";
+
+/** 要点列表可选样式（编辑器与预览共用一份定义，避免两处不一致） */
+export const BULLET_STYLE_OPTIONS: Array<{ key: BulletStyleKey; label: string; sample: string }> = [
+  { key: "diamond", label: "菱形", sample: "◆" },
+  { key: "disc", label: "圆点", sample: "●" },
+  { key: "square", label: "方块", sample: "▪" },
+  { key: "circle", label: "空心圆", sample: "○" },
+  { key: "arrow", label: "箭头", sample: "→" },
+  { key: "check", label: "对勾", sample: "✓" },
+  { key: "ordered", label: "有序", sample: "1." },
+];
+
+/** 支持要点列表的模块类型（其余模块不展示要点样式开关） */
+export const BULLET_CAPABLE_SECTIONS: SectionType[] = ["work_experience", "project_experience", "education", "custom", "summary"];
 
 export interface Resume {
   id: string;
   title: string;
   data: ResumeData;
   template_id: string;
-  theme: { primary_color: string; font_size: number };
+  theme: {
+    primary_color: string;
+    font_size: number;
+    /** 全文字体：sans=黑体 / serif=宋体 / system=系统默认 / kai=楷体 / mono=等宽 / fangsong=仿宋 */
+    font_family?: FontKey;
+    /** 布局紧凑度：紧凑 / 中等 / 宽松，用于一页简历的篇幅调节 */
+    density?: DensityKey;
+    /** 条目头布局：row=标题居左·日期居右；stack=标题居上·信息居下 */
+    header_layout?: HeaderLayoutKey;
+    /** 要点列表样式：disc=圆点 / diamond=菱形 / arrow=箭头 / ordered=有序数字 */
+    bullet_style?: BulletStyleKey;
+    /** 头像显示比例：基于 1 寸照基准尺寸的倍数（0.5–2，缺省 1）；仅展示头像的模板生效 */
+    avatar_scale?: number;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -166,7 +210,7 @@ export interface Suggestion {
 export interface TemplateConfig {
   template_id: string;
   name: string;
-  layout: "single_column" | "ats";
+  layout: "single_column" | "ats" | "photo_header";
   description: string;
 }
 
@@ -182,6 +226,12 @@ export const TEMPLATES: TemplateConfig[] = [
     name: "经典 ATS",
     layout: "ats",
     description: "纯黑白、标准标题、无表格，过筛率优先",
+  },
+  {
+    template_id: "academic_photo",
+    name: "学术双栏",
+    layout: "photo_header",
+    description: "头像 + 校徽头区 + 图标模块标题，适合应届/学术简历",
   },
 ];
 
