@@ -20,6 +20,9 @@ const SKILL_DICT = [
   "jest", "vitest", "cypress", "playwright", "storybook", "figma", "sketch", "产品设计", "需求分析", "项目管理",
   "敏捷", "scrum", "架构设计", "分布式", "高并发", "高可用", "微服务", "中台", "devops", "sre", "aws", "阿里云",
   "腾讯云", "serverless", "低代码", "可视化", "echarts", "d3", "three.js", "webgl", "canvas", "svg", "音视频", "webrtc",
+  // 大模型应用栈（v1.4：示例简历与 AI 岗位 JD 对齐后补充）
+  "vllm", "lora", "sft", "微调", "agent", "智能体", "milvus", "faiss", "pgvector", "向量数据库", "rerank", "重排",
+  "llama-factory", "deepseek", "qwen", "通义千问", "chatgpt", "openai", "多模态", "embedding", "嵌入", "微调数据集",
 ];
 
 const STOPWORDS = new Set([

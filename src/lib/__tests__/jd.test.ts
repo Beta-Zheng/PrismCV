@@ -6,7 +6,7 @@ describe("parseJD：JD 结构化解析", () => {
   const jd = parseJD(SAMPLE_JD_TEXT, "resume_001");
 
   it("提取岗位名称", () => {
-    expect(jd.structured.job_title).toContain("前端工程师");
+    expect(jd.structured.job_title).toContain("工程师");
   });
 
   it("按「岗位职责 / 任职要求」拆分条目", () => {
@@ -16,15 +16,15 @@ describe("parseJD：JD 结构化解析", () => {
 
   it("从技能词典中识别技能关键词", () => {
     const s = jd.structured.skills.map((x) => x.toLowerCase());
-    expect(s).toContain("react");
-    expect(s).toContain("typescript");
-    expect(s).toContain("vite");
-    expect(s).toContain("微前端");
+    expect(s).toContain("rag");
+    expect(s).toContain("prompt");
+    expect(s).toContain("python");
+    expect(s).toContain("lora");
   });
 
   it("提取学历与年限要求", () => {
     expect(jd.structured.education).toBe("本科");
-    expect(jd.structured.experience_years).toBe(5);
+    expect(jd.structured.experience_years).toBe(3);
   });
 
   it("JD 绑定到指定简历且保留原文", () => {

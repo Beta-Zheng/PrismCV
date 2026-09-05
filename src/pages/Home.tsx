@@ -235,7 +235,8 @@ export default function Home() {
     go({ name: "editor", resumeId: id });
   };
   const loadSample = () => {
-    const id = createResume(buildSampleResume(), "陈墨（示例）");
+    const data = buildSampleResume();
+    const id = createResume(data, `${data.basic_info.name}（示例）`);
     noteFirstResume();
     toast("ok", "已载入示例简历，可随意修改");
     go({ name: "editor", resumeId: id });
@@ -488,7 +489,7 @@ export default function Home() {
 
           {tab === "paste" && (
             <div>
-              <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={9} placeholder={"粘贴简历全文，例如：\n\n陈墨\n高级前端工程师\nchenmo@example.com\n\n工作经历\n星云科技 | 高级前端工程师 2021.03 - 至今\n- 主导交易中台重构…"} className="field-input resize-none leading-relaxed" />
+              <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={9} placeholder={"粘贴简历全文，例如：\n\n沈亦航\nAI 应用工程师\nshenyihang@example.com\n\n工作经历\n云阙智能 | AI 应用工程师 2021.03 - 至今\n- 主导企业级 RAG 知识库问答系统…"} className="field-input resize-none leading-relaxed" />
               <div className="mt-2.5 flex justify-end gap-2">
                 <Btn variant="ghost" onClick={() => setPasteText("")}>清空</Btn>
                 <Btn variant="primary" disabled={!pasteText.trim() || parsing} onClick={() => { if (!pasteText.trim()) { toast("warn", "请输入简历内容"); return; } runParse(pasteText, "pasted_text"); }}>

@@ -1,20 +1,44 @@
 import type { ResumeData } from "../types";
 import { uid, nowISO } from "./utils";
 
-/** 示例简历 —— 仅在用户主动点击「载入示例」时使用，不会自动写入 */
+/**
+ * 示例简历 —— 仅在用户主动点击「载入示例」时使用，不会自动写入。
+ *
+ * 内容设定：北邮自动化本科背景、面向 AI 应用（大模型）岗位的虚构候选人。
+ * 技术事实口径参考公开社区资料（RAGAS 忠实度、混合检索召回率、vLLM 多 LoRA
+ * 部署等常见实践），公司与人物均为虚构，无真实个人信息。
+ */
+
+/** 随机姓名池：名字与邮箱前缀成对，每次「载入示例」随机取一位 */
+const NAME_POOL = [
+  { name: "沈亦航", email: "shenyihang" },
+  { name: "顾清源", email: "guqingyuan" },
+  { name: "陆知行", email: "luzhixing" },
+  { name: "江叙白", email: "jiangxubai" },
+  { name: "林晚舟", email: "linwanzhou" },
+  { name: "许望舒", email: "xuwangshu" },
+];
+
+function pickIdentity() {
+  const pick = NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)];
+  const phone = `1${["38", "39", "58", "66", "77"][Math.floor(Math.random() * 5)]}-${String(1000 + Math.floor(Math.random() * 9000))}-${String(1000 + Math.floor(Math.random() * 9000))}`;
+  return { ...pick, phone };
+}
+
 export function buildSampleResume(): ResumeData {
   const b = (partial: Partial<ReturnType<typeof blk>> & { type: ReturnType<typeof blk>["type"] }) => ({
     ...blk(partial.type),
     ...partial,
   });
+  const who = pickIdentity();
   return {
     basic_info: {
-      name: "陈墨",
-      title: "高级前端工程师",
-      email: "chenmo.dev@example.com",
-      phone: "138-0013-8000",
-      location: "上海",
-      website: "chenmo.dev",
+      name: who.name,
+      title: "AI 应用工程师 · 大模型方向",
+      email: `${who.email}@example.com`,
+      phone: who.phone,
+      location: "北京",
+      website: `${who.email}.example.com`,
     },
     sections: [
       {
@@ -35,7 +59,7 @@ export function buildSampleResume(): ResumeData {
           {
             ...blk("summary"),
             description:
-              "7 年前端开发经验，专注大型 Web 应用架构与性能优化。主导过日活 80 万的中台系统重构，首屏耗时从 3.2s 降至 1.1s。熟悉 React 生态与前端工程化，长期负责团队代码规范与新人培养。",
+              "7 年软件研发经验，近 4 年专注大模型应用落地。主导企业级 RAG 知识库问答与多 Agent 工作流从 0 到 1，覆盖 3 条业务线、日均 2 万+ 次调用；以 RAGAS 建立自动化评测闭环，答案忠实度（Faithfulness）从 71% 提升至 92%。兼具工程化与数据能力，能独立完成从数据构建、SFT/LoRA 微调到推理部署的全链路交付。",
           },
         ],
       },
@@ -49,32 +73,32 @@ export function buildSampleResume(): ResumeData {
           {
             ...b({
               type: "work_experience_item",
-              title: "星云科技",
-              subtitle: "高级前端工程师 / 前端组长",
+              title: "云阙智能",
+              subtitle: "AI 应用工程师 / LLM 应用负责人",
               start_date: "2021-03",
               end_date: "至今",
-              location: "上海",
+              location: "北京",
             }),
             bullets: [
-              "主导交易中台前端重构，将 jQuery 单体迁移至 React + TypeScript，缺陷率下降 42%",
-              "设计微前端落地方案，6 个子应用独立发布，发布耗时从 40 分钟缩短至 8 分钟",
-              "搭建前端监控体系，覆盖性能、异常与业务指标，线上问题平均发现时间缩短至 3 分钟",
-              "负责 5 人小组的技术评审与带教，推动组件库沉淀，复用率达到 70%",
+              "主导企业级 RAG 知识库问答系统从 0 到 1，采用混合检索（向量 + BM25）与 Rerank 重排，检索召回率从 58% 提升至 89%，覆盖 12 万篇内部文档",
+              "建立 RAGAS 自动化评测流水线，答案忠实度（Faithfulness）从 71% 提升至 92%，幻觉类客诉下降 76%",
+              "基于 vLLM 部署多 LoRA 推理服务，单基座挂载 4 个业务适配器，推理成本降低约 60%，P95 首字延迟控制在 1.2s 内",
+              "负责 4 人 AI 应用小组，沉淀 Prompt 管理与灰度发布规范，需求平均交付周期从 2 周缩短至 3 天",
             ],
           },
           {
             ...b({
               type: "work_experience_item",
-              title: "蓝湖网络",
-              subtitle: "前端工程师",
+              title: "深流科技",
+              subtitle: "后端工程师",
               start_date: "2018-07",
               end_date: "2021-02",
-              location: "杭州",
+              location: "北京",
             }),
             bullets: [
-              "负责电商营销活动页开发，累计交付 30+ 场大促活动，零线上事故",
-              "实现活动页搭建平台原型，运营配置效率提升 5 倍",
-              "优化移动端首屏加载，通过资源拆分与预加载将 LCP 从 2.8s 降至 1.4s",
+              "负责数据接入与 ETL 平台开发，日均处理 2000 万条埋点数据，链路可用性 99.95%",
+              "设计高可用任务调度系统，故障自动恢复时间小于 5 分钟",
+              "推动服务容器化迁移上 Kubernetes，发布效率提升 3 倍",
             ],
           },
         ],
@@ -89,31 +113,32 @@ export function buildSampleResume(): ResumeData {
           {
             ...b({
               type: "project_experience_item",
-              title: "DesignKit 组件库",
-              subtitle: "发起人 / 核心维护者",
-              start_date: "2022-01",
+              title: "企业知识库 RAG 问答助手",
+              subtitle: "发起人 / 负责人",
+              start_date: "2022-05",
               end_date: "至今",
             }),
             bullets: [
-              "从零搭建团队 React 组件库，覆盖 48 个组件，单元测试覆盖率 85%",
-              "编写主题定制与暗色模式方案，支撑 3 条产品线视觉统一",
+              "设计「多路召回 + Query 改写 + Rerank 重排」三段检索链路，Context Recall 提升 31 个百分点",
+              "实现答案引用溯源与无据拒答策略，上线后答案采纳率 87%，成为公司内部使用率最高的 AI 工具",
             ],
-            skills: ["React", "TypeScript", "Rollup", "Storybook"],
-            links: ["github.com/chenmo/designkit"],
+            skills: ["LangChain", "Milvus", "BM25", "RAGAS", "vLLM"],
+            links: [],
           },
           {
             ...b({
               type: "project_experience_item",
-              title: "实时协作文档",
-              subtitle: "前端负责人",
-              start_date: "2020-03",
-              end_date: "2020-12",
+              title: "客服领域模型 LoRA 微调",
+              subtitle: "核心成员",
+              start_date: "2023-03",
+              end_date: "2023-11",
             }),
             bullets: [
-              "基于 CRDT 实现多人协同编辑，支持 50 人同时在线编辑不冲突",
-              "设计离线缓存与增量同步策略，弱网环境下编辑丢失率降为 0",
+              "清洗并构建 2.3 万条领域指令数据集，基于 LLaMA-Factory 完成 SFT + LoRA 微调",
+              "领域评测集准确率从基座 74% 提升至 91%，相比全量微调训练成本降低约 85%",
             ],
-            skills: ["WebSocket", "IndexedDB", "Yjs"],
+            skills: ["LoRA", "SFT", "LLaMA-Factory", "DeepSpeed", "Python"],
+            links: [],
           },
         ],
       },
@@ -127,8 +152,8 @@ export function buildSampleResume(): ResumeData {
           {
             ...b({
               type: "education_item",
-              title: "华中科技大学",
-              subtitle: "计算机科学与技术 · 本科",
+              title: "北京邮电大学",
+              subtitle: "自动化 · 本科",
               start_date: "2014-09",
               end_date: "2018-06",
             }),
@@ -144,13 +169,13 @@ export function buildSampleResume(): ResumeData {
         blocks: [
           {
             ...blk("skill_group"),
-            title: "核心技术",
-            skills: ["React", "TypeScript", "Vue", "Node.js", "Webpack", "Vite"],
+            title: "大模型应用",
+            skills: ["Prompt 工程", "RAG", "Agent 编排", "SFT/LoRA 微调", "RAGAS 评测", "模型部署"],
           },
           {
             ...blk("skill_group"),
             title: "工程与其他",
-            skills: ["微前端", "性能优化", "前端监控", "CI/CD", "Docker", "MySQL"],
+            skills: ["Python", "TypeScript", "LangChain", "vLLM", "Milvus", "FastAPI", "Docker/K8s"],
           },
         ],
       },
@@ -161,8 +186,8 @@ export function buildSampleResume(): ResumeData {
         visible: true,
         order: 6,
         blocks: [
-          { ...b({ type: "certification", title: "公司年度技术突破奖", start_date: "2023" }) },
-          { ...b({ type: "certification", title: "AWS Certified Cloud Practitioner", start_date: "2022" }) },
+          { ...b({ type: "certification", title: "云阙智能年度技术之星", start_date: "2023" }) },
+          { ...b({ type: "certification", title: "软考高级 · 系统架构设计师", start_date: "2021" }) },
         ],
       },
     ],
@@ -188,17 +213,17 @@ function blk(type: import("../types").BlockType) {
   };
 }
 
-export const SAMPLE_JD_TEXT = `高级前端工程师（React 方向）
+export const SAMPLE_JD_TEXT = `AI 应用工程师（大模型方向）
 
 岗位职责：
-1. 负责核心业务中台的前端架构设计与开发；
-2. 主导前端性能优化与监控体系建设；
-3. 推动组件库、工程化规范落地，提升团队研发效率；
-4. 参与微前端方案设计与跨团队协作。
+1. 负责大模型能力在业务场景的落地：RAG 知识库、智能问答与流程自动化；
+2. 设计并优化 Prompt 与 Agent 工作流，建设效果评测体系；
+3. 负责领域模型的 SFT/LoRA 微调、评测与推理部署优化；
+4. 与产品、算法团队协作，持续提升回答质量与用户体验。
 
 任职要求：
-1. 本科及以上学历，计算机相关专业，5 年以上前端开发经验；
-2. 精通 React、TypeScript，熟悉 Hooks 与状态管理原理；
-3. 熟悉 Vite、Webpack 等构建工具，有性能优化实战经验；
-4. 了解 Node.js、微前端、前端监控者优先；
-5. 具备良好的沟通能力和技术影响力。`;
+1. 本科及以上学历，计算机、自动化、软件工程等相关专业，3 年以上研发经验；
+2. 熟悉大模型基本原理与 Prompt 工程，有 RAG 或 Agent 系统开发经验；
+3. 熟悉 SFT/LoRA 等微调方法，了解 vLLM、LangChain 等框架者优先；
+4. 扎实的 Python 功底，良好的工程化能力与数据敏感度；
+5. 具备良好的沟通表达与跨团队协作能力。`;

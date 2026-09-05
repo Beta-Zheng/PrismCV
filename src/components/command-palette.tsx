@@ -79,7 +79,8 @@ export default function CommandPalette() {
       icon: <IconSpark size={15} />,
       keywords: "示例 样例 演示 载入 简历",
       run: () => {
-        const id = createResume(buildSampleResume(), "陈墨（示例）");
+        const data = buildSampleResume();
+        const id = createResume(data, `${data.basic_info.name}（示例）`);
         toast("ok", "已载入示例简历");
         go({ name: "editor", resumeId: id });
       },
