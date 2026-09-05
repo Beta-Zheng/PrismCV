@@ -35,7 +35,7 @@ type Section = Resume["data"]["sections"][number];
 
 /** 与 runParse 的 hasContent 同一口径：summary 看 description、skills 看词条数，其余看块数 */
 function sectionHasContent(s: Section): boolean {
-  if (s.type === "summary") return s.blocks.some((b) => b.description?.trim());
+  if (s.type === "summary") return s.blocks.some((b) => b.description?.trim() || b.bullets.some((x) => x.trim()));
   if (s.type === "skills") return s.blocks.some((b) => (b.skills?.length ?? 0) > 0);
   return s.blocks.length > 0;
 }
@@ -155,7 +155,7 @@ export default function Home() {
       // 否则 hasContent 恒为 true、失败分支（未能识别）永远走不到（原代码即此死代码）。
       const hasContent =
         data.sections.some((s) => {
-          if (s.type === "summary") return s.blocks.some((b) => b.description?.trim());
+          if (s.type === "summary") return s.blocks.some((b) => b.description?.trim() || b.bullets.some((x) => x.trim()));
           if (s.type === "skills") return s.blocks.some((b) => (b.skills?.length ?? 0) > 0);
           return s.blocks.length > 0;
         }) || !!(data.basic_info.name || data.basic_info.email || data.basic_info.phone);

@@ -62,7 +62,8 @@ const b = (partial: Partial<ReturnType<typeof blk>> & { type: ReturnType<typeof 
 
 /** 六个固定模块按标准顺序组装（basic_info 由外层统一填充） */
 function assembleSections(parts: {
-  summary: string;
+  /** 个人总结以要点分条填充（而非 description 段落） */
+  summaryBullets: string[];
   work: ReturnType<typeof b>[];
   projects: ReturnType<typeof b>[];
   education: { school: string; major: string; start: string; end: string };
@@ -77,7 +78,7 @@ function assembleSections(parts: {
       title: "个人总结",
       visible: true,
       order: 1,
-      blocks: [{ ...blk("summary"), description: parts.summary }],
+      blocks: [{ ...blk("summary"), bullets: parts.summaryBullets }],
     },
     {
       section_id: "work_experience",
@@ -137,8 +138,12 @@ function profileAI(_: Identity): Pick<ResumeData, "sections"> & { roleTitle: str
     roleTitle: "AI 应用工程师 · 大模型方向",
     location: "北京",
     sections: assembleSections({
-      summary:
-        "7 年软件研发经验，近 4 年专注大模型应用落地。主导企业级 RAG 知识库问答与多 Agent 工作流从 0 到 1，覆盖 3 条业务线、日均 2 万+ 次调用；以 RAGAS 建立自动化评测闭环，答案忠实度（Faithfulness）从 71% 提升至 92%。兼具工程化与数据能力，能独立完成从数据构建、SFT/LoRA 微调到推理部署的全链路交付。",
+      summaryBullets: [
+        "7 年软件研发经验，近 4 年专注大模型应用落地，覆盖 3 条业务线、日均 2 万+ 次调用",
+        "主导企业级 RAG 知识库问答与多 Agent 工作流从 0 到 1，成为内部使用率最高的 AI 工具",
+        "以 RAGAS 建立自动化评测闭环，答案忠实度（Faithfulness）从 71% 提升至 92%",
+        "能独立完成从数据构建、SFT/LoRA 微调到推理部署的全链路交付",
+      ],
       work: [
         b({
           type: "work_experience_item",
@@ -214,8 +219,12 @@ function profileFrontend(_: Identity): Pick<ResumeData, "sections"> & { roleTitl
     roleTitle: "高级前端工程师",
     location: "杭州",
     sections: assembleSections({
-      summary:
-        "7 年前端开发经验，专注大型 Web 应用架构与性能优化。主导过日活 80 万的中台系统重构，首屏耗时从 3.2s 降至 1.1s；落地微前端方案支撑 6 个子应用独立发布。熟悉 React 生态与前端工程化全链路，长期负责团队代码规范与新人培养。",
+      summaryBullets: [
+        "7 年前端开发经验，专注大型 Web 应用架构与性能优化",
+        "主导日活 80 万的中台系统重构，首屏耗时从 3.2s 降至 1.1s",
+        "落地微前端方案支撑 6 个子应用独立发布，发布耗时缩短 80%",
+        "熟悉 React 生态与前端工程化全链路，长期负责团队代码规范与新人培养",
+      ],
       work: [
         b({
           type: "work_experience_item",
@@ -291,8 +300,12 @@ function profileData(_: Identity): Pick<ResumeData, "sections"> & { roleTitle: s
     roleTitle: "数据分析师 · 增长方向",
     location: "上海",
     sections: assembleSections({
-      summary:
-        "6 年数据分析经验，专注用户增长与商业化分析。搭建覆盖 200+ 指标的增长度量体系，主导的会员转化优化项目带来年化 GMV 增量 4800 万；熟练以 SQL / Python 完成从取数、建模到实验设计的全流程，擅长把数据结论翻译成可落地的业务动作。",
+      summaryBullets: [
+        "6 年数据分析经验，专注用户增长与商业化分析",
+        "搭建覆盖 200+ 指标的增长度量体系，统一全公司北极星指标口径",
+        "主导会员转化漏斗优化，付费转化率从 3.1% 提升至 4.6%，年化 GMV 增量 4800 万",
+        "熟练以 SQL / Python 完成取数、建模到实验设计的全流程，擅长把数据结论翻译成业务动作",
+      ],
       work: [
         b({
           type: "work_experience_item",
