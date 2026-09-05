@@ -149,7 +149,7 @@ export default function Settings() {
       </section>
 
       <p className="text-center font-mono text-[10.5px] text-ink-300">
-        AI Resume MVP · 本地优先 · 隐私默认保护 · 构建于 {new Date().getFullYear()}
+        PrismCV · 本地优先 · 隐私默认保护 · 构建于 {new Date().getFullYear()}
       </p>
 
       <Confirm

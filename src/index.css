@@ -169,6 +169,15 @@ body {
   animation: border-flow 1.6s linear infinite;
 }
 
+/* AI 空态图标呼吸：仅 AI 语境的空态使用，幅度刻意压小（≤4%）避免喧宾夺主 */
+@keyframes ai-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgb(99 102 241 / 0.0); }
+  50% { transform: scale(1.04); box-shadow: 0 0 0 5px rgb(99 102 241 / 0.12); }
+}
+.ai-breathe {
+  animation: ai-breathe 3.2s ease-in-out infinite;
+}
+
 /* ---------- motion ---------- */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(10px); }

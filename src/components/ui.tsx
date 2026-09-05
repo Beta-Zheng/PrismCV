@@ -278,10 +278,18 @@ export function SaveIndicator() {
 
 /* ---------------- 空状态 ---------------- */
 
-export function Empty({ icon, title, desc, children }: { icon: ReactNode; title: string; desc?: string; children?: ReactNode }) {
+export function Empty({ icon, title, desc, children, accent }: { icon: ReactNode; title: string; desc?: string; children?: ReactNode; accent?: "ai" }) {
   return (
     <div className="anim-fade-up flex flex-col items-center justify-center rounded-xl border border-dashed border-ink-200 bg-white/40 px-6 py-10 text-center">
-      <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-paper-200 text-ink-400">{icon}</span>
+      <span
+        className={cx(
+          "mb-3 flex h-12 w-12 items-center justify-center rounded-xl",
+          accent === "ai" ? "ai-breathe text-white" : "bg-paper-200 text-ink-400",
+        )}
+        style={accent === "ai" ? { backgroundImage: "linear-gradient(135deg, var(--color-sp-a), var(--color-sp-b) 55%, var(--color-sp-c))" } : undefined}
+      >
+        {icon}
+      </span>
       <p className="text-[14px] font-bold text-ink-800">{title}</p>
       {desc && <p className="mt-1 max-w-xs text-xs leading-relaxed text-ink-400">{desc}</p>}
       {children && <div className="mt-4">{children}</div>}

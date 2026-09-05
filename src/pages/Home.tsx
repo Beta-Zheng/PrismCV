@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Resume, SectionType, SourceKind } from "../types";
 import { TEMPLATES } from "../types";
@@ -75,6 +75,33 @@ function MiniRing({ pct, size = 46 }: { pct: number; size?: number }) {
       <span className="absolute inset-0 flex items-center justify-center font-mono text-[11px] font-bold text-ink-800">{pct}</span>
     </span>
   );
+}
+
+/** 统计数字入场：从 0 计数到目标值（550ms ease-out；reduced-motion 直接显示终值，非纯数字如「—」不参与） */
+function StatValue({ value }: { value: string }) {
+  const m = value.match(/^(\d+)(%?)$/);
+  const target = m ? Number(m[1]) : null;
+  const suffix = m?.[2] ?? "";
+  const [display, setDisplay] = useState(target === null ? value : "0" + suffix);
+  useEffect(() => {
+    if (target === null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDisplay(target + suffix);
+      return;
+    }
+    let raf = 0;
+    const t0 = performance.now();
+    const dur = 550;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - t0) / dur);
+      setDisplay(Math.round(target * (1 - Math.pow(1 - p, 3))) + suffix);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+  return <p className="mt-1 font-mono text-[26px] font-bold leading-none tabular-nums text-ink-900">{display}</p>;
 }
 
 export default function Home() {
@@ -320,7 +347,7 @@ export default function Home() {
         {stats.map((s, i) => (
           <div key={i} className="rounded-xl border border-line bg-surface px-4 py-3.5">
             <p className="text-[11px] font-medium text-ink-400">{s.label}</p>
-            <p className="mt-1 font-mono text-[26px] font-bold leading-none text-ink-900">{s.value}</p>
+            <StatValue value={s.value} />
             <p className="mt-1.5 text-[10.5px] text-ink-400">{s.sub}</p>
           </div>
         ))}
@@ -340,7 +367,7 @@ export default function Home() {
 
         {resumes.length === 0 ? (
           <div className="anim-fade-up flex flex-col items-center rounded-2xl border border-line bg-surface px-6 py-12 text-center">
-            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-700">
+            <span className="bg-brand-gradient shadow-brand-glow mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-white">
               <IconFile size={24} />
             </span>
             <p className="text-[15px] font-bold text-ink-800">还没有简历</p>

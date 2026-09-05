@@ -1,26 +1,24 @@
-# PrismCV — AI Resume Workbench · 本地 AI 简历工作台
+<div align="center">
+
+# PrismCV · 本地 AI 简历工作台
+
+**把一份旧简历，变成一份打得准的新简历 —— 全程在你的浏览器里完成，数据不出本机。**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-534AB7.svg)](LICENSE)
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](https://www.typescriptlang.org)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF.svg)](https://vite.dev)
-[![Local-first](https://img.shields.io/badge/local--first-100%25%20in--browser-0F6E56.svg)](#隐私与安全)
+[![Local-first](https://img.shields.io/badge/local--first-100%25%20in--browser-0F6E56.svg)](#-隐私与安全)
 
-> **Local-first · Privacy by default · Human-in-the-loop AI · Data-driven editing**
-> 本地优先 · 隐私默认保护 · 用户可控 · AI 辅助而非自动覆盖 · 结构化数据驱动
+[▶ 在线体验 Live Demo](https://beta-zheng.github.io/PrismCV/) · [下载使用](#-快速开始) · [使用指南](#-使用指南) · [常见问题](#-常见问题)
 
+</div>
 
-## 名称由来
+---
 
-**Prism**（棱镜）——一束白光穿过棱镜，被分成一条光谱，正如界面里那道 AI 光谱；简历也是一块棱镜：把真实的你，折射成机会想看到的样子。
+PrismCV 是一个**本地优先**的 AI 简历工作台：上传已有的简历（PDF / DOCX / MD / TXT），自动解析成结构化数据；逐模块编辑、拖拽排序；粘贴一段招聘 JD，立刻得到本地匹配度分析；再让 AI 针对每个条目给出润色建议——所有建议都以「原文 → 建议」对照呈现，**你确认后才写入**。最后经系统打印管线导出像素级还原的 A4 PDF。
 
-**PrismCV** is a local-first, AI-assisted resume workbench that runs entirely in your browser. Upload an existing resume — PDF / DOCX / MD / TXT — and it is parsed into structured data; edit module by module, drag to reorder, paste a **job description** to get a local matching analysis, and ask AI for per-section suggestions that are always shown as a diff before you accept them. Export a pixel-faithful A4 PDF through the system print pipeline. **No data leaves your machine by default**; external models must be explicitly enabled and confirmed per call.
-
-The name is a pun on optics: a resume is a *prism* that splits your career into the spectrum a role is looking for — the same tricolor spectrum (`#38BDF8 → #6366F1 → #C084FC`) used across the UI's AI accents.
-
-<p align="center">
-  <a href="https://beta-zheng.github.io/PrismCV/"><img src="https://img.shields.io/badge/▶_Live_Demo-beta--zheng.github.io%2FPrismCV-534AB7?style=for-the-badge" alt="Live Demo"></a>
-</p>
+**默认配置下，没有任何数据离开你的电脑**：不注册、不上传、无遥测；外部模型默认关闭，开启后每次调用都要逐次确认。
 
 <p align="center">
   <img src="docs/screenshots/home.png" alt="PrismCV 工作台首页" width="48%" />
@@ -28,80 +26,122 @@ The name is a pun on optics: a resume is a *prism* that splits your career into 
   <img src="docs/screenshots/editor.png" alt="PrismCV A4 编辑器与 AI 建议面板" width="48%" />
 </p>
 
----
+## ✨ 它能帮你做什么
 
-## English quick start
+- **免重录的起点** —— 拖入旧简历，PDF / DOCX / MD / TXT 自动解析成结构化数据，姓名、经历、技能各归各位，从「改」开始而不是从「打」开始。
+- **所见即所得的 A4 编辑** —— 左侧调模块、中间改内容、右侧看建议，实时 A4 预览；模块拖拽排序、条目显隐、要点样式（菱形/圆点/短横）随手切换。
+- **JD 匹配度体检** —— 粘贴目标岗位的 JD，本地规则引擎提取技能与关键词，给出综合匹配分、四维细分（技能/关键词/经历相关性/表达质量）和缺失项清单，改哪里一目了然。
+- **AI 只当副驾** —— 七种逐条目 AI 动作（润色、改写、量化、精简、STAR、翻译、自定义）；每条建议以 diff 对照展示，接受、编辑后接受或拒绝都由你决定。
+- **隐私不打折扣** —— 不注册不上传不遥测；API Key 界面掩码、不进日志；富文本经白名单消毒；一键备份/恢复全部数据。
+- **导出即所见** —— 三套模板（现代单栏 / 经典 ATS / 学术双栏）配主题色与字号调节，「打印 → 另存为 PDF」忠实还原预览效果，ATS 模板专门为机器筛选优化。
+
+<details>
+<summary>三套模板一览</summary>
+
+| 模板 | 适合 |
+|---|---|
+| **现代单栏** | 互联网 / 设计等行业投递，serif 姓名 + 主题色分隔 + 图标徽章 |
+| **经典 ATS** | 大厂网申、机器筛简历场景：标准标题、纯文本技能，解析器友好 |
+| **学术双栏** | 应届生 / 学术求职：头像页眉、圆形图标徽章、双栏紧凑排版 |
+
+</details>
+
+## 🚀 快速开始
+
+**方式一：在线体验（零安装）**
+
+直接打开 👉 **[beta-zheng.github.io/PrismCV](https://beta-zheng.github.io/PrismCV/)**，数据只存在你浏览器的 localStorage 里。
+
+**方式二：本地运行**
 
 ```bash
+git clone https://github.com/beta-zheng/PrismCV.git
+cd PrismCV
 npm install
-npm run dev           # dev mode → http://localhost:3000
-npm run build         # production build → dist/
-npm run typecheck     # TypeScript check
-npm test              # unit tests (parser / jd / ai / utils / flows)
+npm run dev        # 打开 http://localhost:3000
 ```
 
-Requirements: Node.js ≥ 18. Optional: a local [Ollama](https://ollama.com) to enable on-device model suggestions.
+要求：Node.js ≥ 18。可选：本地运行 [Ollama](https://ollama.com) 即可启用纯本机的模型建议（无需任何 API Key）。
 
-### Live demo
+> 部署到自己的 GitHub Pages：`VITE_BASE_PATH=/<仓库名>/ npm run build`，把 `dist/` 发布即可。
 
-无需 clone，直接体验：👉 **https://beta-zheng.github.io/PrismCV/**
-
-### Highlights
-
-- **Local-first by default** — no uploads, no telemetry, no account; models are opt-in only.
-- **Parse, don't retype** — import PDF / DOCX / MD / TXT and get structured resume data back.
-- **A4 WYSIWYG editing** — three templates, drag-and-drop module ordering, live A4 preview.
-- **JD matching** — paste a job description; a local rule engine scores fit and lists missing skills & keywords.
-- **Human-in-the-loop AI** — seven per-block actions; every suggestion appears as a diff before applying.
-- **Print-perfect export** — system print pipeline → PDF, honoring template / theme / typography exactly.
-
-### Templates
-
-| Template | Description |
-|---|---|
-| Modern | 现代单栏：serif name + themed section rules + icon badges |
-| Classic ATS | 经典黑白：standard headings, plain-text skills — built for parser-first screening |
-| Academic | 学术双栏：photo header, circular icon badges — suits graduates & academia |
-
----
-
-## 使用指南
+## 📖 使用指南
 
 ### 1. 创建简历（三种方式）
 
-- **上传文件**：拖拽或点击选择 `.pdf / .docx / .md / .txt`（≤10MB）；
-- **粘贴文本**：解析失败时自动切换到此页签，也可直接粘贴简历全文；
-- **空白/示例**：完全手动，或载入内置示例简历体验全流程。
+- **上传文件**：把 `.pdf / .docx / .md / .txt`（≤10MB）拖进页面任意位置，或点「新建简历」选择文件；
+- **粘贴文本**：解析失败会自动引导到此页签，直接粘贴简历全文同样可以结构化；
+- **空白 / 示例**：从零手动填写，或一键载入内置示例简历体验完整流程。
 
-> 扫描件 PDF 无可提取文本时会明确提示，并引导改用粘贴方式。
+> 扫描件 PDF 提取不到文本时会明确提示，不会静默给你一份空简历。
 
-### 2. 编辑器
+### 2. 编辑器三栏
 
-- **左栏 · 模块大纲**：拖拽调整模块顺序、开关显隐、添加自定义模块；
-- **中栏 · 编辑区**：每个模块卡片支持整卡拖拽排序、Block 增删、上移/下移、显隐；描述与要点支持选中加粗/斜体；所有字段即时编辑；
-- **右栏 · AI 润色与 JD match**；
-- **自动保存**：停止输入约 1 秒后写入本地，顶栏显示保存时间戳。
+- **左栏 · 模块大纲**：拖拽调整模块顺序、开关模块显隐、添加自定义模块；
+- **中栏 · 编辑区**：每个条目卡片可折叠、可整卡拖拽排序、可上移/下移/删除/隐藏；描述与要点支持选中加粗、斜体；右上「AI」按钮呼出动作菜单；
+- **右栏 · AI 建议 + JD 匹配**：两个页签分别承载 AI 建议流程与 JD 分析结果；
+- **自动保存**：停止输入约 1 秒后写入本机，顶栏显示最近保存时间，刷新不丢。
 
-### 3. 模块拖拽排序
+### 3. JD 匹配
 
-左侧大纲与编辑区拖拽手柄均可调整 Section 顺序；隐藏模块保留位置；重新打开、切换模板、导出 PDF 均与编辑器顺序一致。
+右栏切到「JD 匹配」→ 粘贴招聘 JD → 「解析 JD」提取技能与关键词 → 「分析与当前简历的匹配度」，得到综合分与四维细分；低于理想的维度会列出缺失技能与关键词，回到编辑器针对性补强即可。
 
-### 4. 配置模型
+### 4. AI 建议（需你确认）
 
-「模型与隐私」页预置本地 Ollama 配置。**外部模型默认关闭**，开启后每次外部调用前弹窗确认。
+条目上点「AI」→ 选动作（润色 / 改写 / 量化 / 精简 / STAR / 翻译 / 自定义）→ 建议以**原文 → 建议 diff** 呈现 → 「接受」「编辑后接受」或「拒绝」。默认使用本地规则引擎；连接 Ollama 或开启外部模型后由模型生成。综合匹配 ≥75 分等关键节点会有彩带庆祝。
 
-### 5. 导出 PDF
+### 5. 模板与导出 PDF
 
-编辑器「预览 / 导出 PDF」→ 选择缩放浏览 A4 效果 → 「打印 / 另存为 PDF」调用系统打印面板，目标选「另存为 PDF」。
+编辑器顶部可切换模板（现代单栏 / 经典 ATS / 学术双栏）、调整主题色与字号。点「预览 / 导出 PDF」→ 缩放检查 A4 排版（超一页会提示可一键切紧凑布局）→ 「打印 / 另存为 PDF」→ 系统打印对话框中目标选「另存为 PDF」。
 
----
+> 提示：打印时请在「更多设置」中勾选**背景图形**，主题色分隔线与徽章底色才会被打印出来。
 
-## 隐私与安全
+### 6. 模型配置（可选）
+
+「模型与隐私」页预置了本地 Ollama（`http://localhost:11434`）。三种策略按需选择：`local_first`（默认，本地优先）、`ask_before_external`（外部模型每次弹窗确认）、`local_only`（永不外发）。外部 OpenAI Compatible 模型默认关闭，API Key 仅存本机、界面掩码。
+
+## ❓ 常见问题
+
+**Q：我的简历数据存在哪里？**
+浏览器的 localStorage 里，只在你这台电脑上。「数据管理」页可查看占用、一键备份成 JSON、或从备份恢复。
+
+**Q：PDF 解析失败怎么办？**
+先确认不是扫描件（图片型 PDF 无文本层）。解析失败会自动引导到「粘贴文本」页签，复制原文粘贴同样能结构化。
+
+**Q：导出的 PDF 没有颜色？**
+系统打印默认不打印背景色。在打印对话框的「更多设置」里勾选「背景图形」即可。
+
+**Q：必须配置模型才能用吗？**
+不需要。无模型时 AI 动作走内置的本地规则引擎（去冗余修饰、统一表述等），JD 匹配本身就是纯本地规则，完整可用。
+
+**Q：AI 会不会直接改我的简历？**
+不会。任何 AI 建议都以对照形式展示，只有你点了「接受」（或「编辑后接受」）才会写入，并可随时在「AI 建议」记录里追溯。
+
+## 🔒 隐私与安全
 
 - 默认不上传任何数据、不发遥测、不请求外部服务；
-- 外部模型必须显式开启，调用前逐次确认；
+- 外部模型必须显式开启，且每次调用前逐次确认；
 - API Key 界面掩码展示，不写入备份与日志；
 - 富文本渲染前经白名单消毒（`sanitizeInline`），防注入；
-- 解析失败、AI 失败、导出失败均有兜底，不丢失用户已编辑内容。
+- 解析失败、AI 失败、导出失败均有兜底，不会丢失已编辑内容。
 
----
+## 🛠 开发
+
+```bash
+npm run dev           # 开发模式 → http://localhost:3000
+npm run build         # 生产构建 → dist/
+npm run typecheck     # TypeScript 检查
+npm test              # 单元测试（parser / jd / ai / utils / flows）
+```
+
+技术栈：React 18 · TypeScript · Vite 6 · Tailwind CSS 4 · Zustand（persist）· dnd-kit · framer-motion。
+
+欢迎 Issue 与 PR：报 bug 请附复现步骤与浏览器版本；提功能建议请先说明使用场景。
+
+## 📛 名称由来
+
+**Prism**（棱镜）——一束白光穿过棱镜，被分成一条光谱，正如界面里那道 AI 光谱（`#38BDF8 → #6366F1 → #C084FC`）；简历也是一块棱镜：把真实的你，折射成机会想看到的样子。
+
+## License
+
+[MIT](LICENSE)

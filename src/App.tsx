@@ -93,8 +93,8 @@ function AppShell() {
         <div className="flex items-center gap-2.5 px-4 pb-5 pt-5">
           <Logo size={36} />
           <div>
-            <p className="font-display text-[16px] font-black leading-none text-ink-900">AI Resume</p>
-            <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400">local workbench</p>
+            <p className="font-display text-[16px] font-black leading-none text-ink-900">PrismCV</p>
+            <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400">resume workbench</p>
           </div>
         </div>
 

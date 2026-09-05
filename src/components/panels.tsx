@@ -186,6 +186,7 @@ export function AIPanel({ resume, activeTarget }: { resume: Resume; activeTarget
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
         {!active && (
           <Empty
+            accent="ai"
             icon={<IconSpark size={20} />}
             title="还没有 AI 建议"
             desc="在中间编辑区任意条目上点击「AI」按钮，选择润色、改写、量化等动作。建议生成后需你确认才会写入简历。"
