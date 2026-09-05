@@ -90,12 +90,14 @@ function MenuSection({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-function SortableSection({ resume, section, onRequestAI, highlight, dim }: { resume: Resume; section: Section; onRequestAI: (s: string, b: string, a: AIAction) => void; highlight?: boolean; dim?: boolean }) {
+function SortableSection({ resume, section, onRequestAI, highlight, dim, onHover }: { resume: Resume; section: Section; onRequestAI: (s: string, b: string, a: AIAction) => void; highlight?: boolean; dim?: boolean; onHover?: (id: string | null) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.section_id });
   return (
     <div
       ref={setNodeRef}
       data-section-id={section.section_id}
+      onMouseEnter={() => onHover?.(section.section_id)}
+      onMouseLeave={() => onHover?.(null)}
       style={{
         transform: transform ? `${CSS.Transform.toString(transform)}${isDragging ? " rotate(2deg)" : ""}` : undefined,
         transition,
@@ -103,7 +105,7 @@ function SortableSection({ resume, section, onRequestAI, highlight, dim }: { res
       className={cx(
         "rounded-xl transition-[opacity,box-shadow] duration-300",
         highlight && !isDragging && "shadow-[0_16px_40px_-26px_rgba(99,102,241,0.6)] ring-1 ring-brand-300",
-        dim && "opacity-55 hover:opacity-90",
+        dim && "opacity-55",
         isDragging && "z-20 opacity-95 shadow-[0_24px_48px_-12px_rgba(99,102,241,0.45)] ring-1 ring-brand-300"
       )}
     >
@@ -151,6 +153,8 @@ export default function Editor({ resumeId }: { resumeId: string }) {
   // ---------- Scrollspy：视口顶部 reading line 命中的模块突出显示，其余淡化 ----------
   const scrollRef = useRef<HTMLElement>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  // 鼠标悬停的模块优先成为高亮对象；移开后回落到滚动判定
+  const [hoverSection, setHoverSection] = useState<string | null>(null);
   // 正在输入时不淡化：编辑动作发生在某个卡片内部，淡化它的邻居会干扰输入
   const [editingField, setEditingField] = useState(false);
   const sectionIdsKey = sections.map((s) => s.section_id).join(",");
@@ -430,16 +434,20 @@ export default function Editor({ resumeId }: { resumeId: string }) {
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={sections.map((s) => s.section_id)} strategy={verticalListSortingStrategy}>
               <div className="mx-auto flex max-w-3xl flex-col gap-4 pb-10">
-                {sections.map((s) => (
-                  <SortableSection
-                    key={s.section_id}
-                    resume={resume}
-                    section={s}
-                    onRequestAI={onRequestAI}
-                    highlight={activeSection === s.section_id}
-                    dim={sections.length >= 2 && !editingField && activeSection !== null && activeSection !== s.section_id}
-                  />
-                ))}
+                {sections.map((s) => {
+                  const current = hoverSection ?? activeSection;
+                  return (
+                    <SortableSection
+                      key={s.section_id}
+                      resume={resume}
+                      section={s}
+                      onRequestAI={onRequestAI}
+                      highlight={current === s.section_id}
+                      dim={sections.length >= 2 && !editingField && current !== null && current !== s.section_id}
+                      onHover={setHoverSection}
+                    />
+                  );
+                })}
                 <button onClick={() => setAddSecOpen(true)} className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink-200 py-4 text-[13px] font-medium text-ink-400 transition hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700">
                   <IconPlus size={14} /> 添加自定义模块（可参与拖拽排序）
                 </button>
