@@ -14,8 +14,9 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 3000,
     strictPort: true,
-    hmr: {
-      port: 3000,
-    },
+    // HMR websocket 默认跟随实际 server 端口；仅当页面经外部代理映射到别的端口时
+    // 才需要固定（设 VITE_HMR_PORT）。写死 3000 会让任何第二实例的 HMR
+    // 连接失败并抛未捕获异常（页面不白屏，但热更新失效、控制台报错）。
+    ...(process.env.VITE_HMR_PORT ? { hmr: { port: Number(process.env.VITE_HMR_PORT) } } : {}),
   },
 });
