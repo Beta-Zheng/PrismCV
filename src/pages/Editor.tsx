@@ -374,7 +374,7 @@ export default function Editor({ resumeId }: { resumeId: string }) {
             </MenuSection>
           )}
 
-          {resume.template_id !== "classic_ats" && (
+          {resume.template_id === "academic_photo" && (
             <MenuSection title="头像大小">
               <div className="flex items-center gap-2">
                 <input

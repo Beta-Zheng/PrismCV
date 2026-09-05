@@ -547,21 +547,15 @@ export function ResumeSheet({ resume, forPrint }: { resume: Resume; forPrint?: b
                 </p>
               )}
             </div>
-            {/* 已上传头像时直接使用头像，否则用姓名首字母色块，保持右上角视觉锚点 */}
-            {resume.data.avatar_url ? (
-              <div className="mb-1 shrink-0 overflow-hidden rounded-md bg-paper-100" style={avatarBox(resume.theme.avatar_scale, 42, 58)}>
-                <img src={resume.data.avatar_url} alt="头像" className="h-full w-full object-cover" />
-              </div>
-            ) : (
-              <div
-                className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                style={{ background: `linear-gradient(135deg, ${color}, ${color}bf)` }}
-              >
-                <span className="font-bold text-white" style={{ fontSize: "1.35em" }}>
-                  {(info.name || "?").slice(0, 1)}
-                </span>
-              </div>
-            )}
+            {/* 单栏模板不放照片，统一用姓名首字母色块保持右上角视觉锚点（头像仅学术双栏） */}
+            <div
+              className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: `linear-gradient(135deg, ${color}, ${color}bf)` }}
+            >
+              <span className="font-bold text-white" style={{ fontSize: "1.35em" }}>
+                {(info.name || "?").slice(0, 1)}
+              </span>
+            </div>
           </div>
           {contacts.length > 0 && (
             <div className="mt-[var(--head-gap)] flex flex-wrap items-center gap-y-1 text-[0.85em] text-ink-500">

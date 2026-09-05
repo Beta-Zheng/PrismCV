@@ -825,22 +825,27 @@ function BasicInfoEditor({ resume }: { resume: Resume }) {
       {fields.map((f) => (
         <RichField key={f.key} label={f.label} value={b[f.key]} placeholder={f.ph} onChange={(v) => patchBasic(resume.id, { [f.key]: v })} />
       ))}
-      <ImageUploadField
-        label="头像"
-        url={resume.data.avatar_url}
-        onFile={(file) => handleImage(file, (url) => setAvatar(resume.id, url), "头像")}
-        onClear={() => setAvatar(resume.id, null)}
-        rounded="rounded-lg"
-        placeholder="?"
-      />
-      <ImageUploadField
-        label="校徽"
-        url={resume.data.school_badge_url}
-        onFile={(file) => handleImage(file, (url) => setSchoolBadge(resume.id, url), "校徽")}
-        onClear={() => setSchoolBadge(resume.id, null)}
-        rounded="rounded-full"
-        placeholder="校"
-      />
+      {/* 头像/校徽仅学术双栏模板渲染（template.tsx 中只有该分支使用），单栏与 ATS 不提供上传入口 */}
+      {resume.template_id === "academic_photo" && (
+        <>
+          <ImageUploadField
+            label="头像"
+            url={resume.data.avatar_url}
+            onFile={(file) => handleImage(file, (url) => setAvatar(resume.id, url), "头像")}
+            onClear={() => setAvatar(resume.id, null)}
+            rounded="rounded-lg"
+            placeholder="?"
+          />
+          <ImageUploadField
+            label="校徽"
+            url={resume.data.school_badge_url}
+            onFile={(file) => handleImage(file, (url) => setSchoolBadge(resume.id, url), "校徽")}
+            onClear={() => setSchoolBadge(resume.id, null)}
+            rounded="rounded-full"
+            placeholder="校"
+          />
+        </>
+      )}
       {/* 自定义信息项：固定六项之外的补充字段（如 期望薪资 / 政治面貌），随联系方式一行渲染 */}
       <div className="col-span-2">
         <div className="mb-1 flex items-center justify-between">
