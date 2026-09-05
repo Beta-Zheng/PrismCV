@@ -14,26 +14,38 @@ import { IconCheck, IconEdit, IconEye, IconEyeOff, IconGrip, IconRefresh, IconSp
 
 /* ================= 左侧大纲（可拖拽排序） ================= */
 
-function OutlineItem({ section, resumeId }: { section: Section; resumeId: string }) {
+function OutlineItem({ section, resumeId, active }: { section: Section; resumeId: string; active?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.section_id });
   const toggleSection = useApp((s) => s.toggleSection);
+  // 点击标题跳转到中栏对应模块卡；scrollIntoView 沿最近的滚动容器（中栏 main）滚动
+  const scrollToSection = () => {
+    document.querySelector<HTMLElement>(`[data-section-id="${section.section_id}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cx(
         "group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-all duration-150",
-        isDragging ? "z-10 border-brand-400 bg-brand-50 shadow-lg shadow-brand-900/10" : "border-transparent hover:border-ink-200 hover:bg-white",
+        isDragging ? "z-10 border-brand-400 bg-brand-50 shadow-lg shadow-brand-900/10" : active && section.visible ? "border-brand-200 bg-brand-50" : "border-transparent hover:border-ink-200 hover:bg-white",
         !section.visible && "opacity-45"
       )}
     >
-      <button {...attributes} {...listeners} className="cursor-grab touch-none text-ink-300 transition hover:text-ink-600 active:cursor-grabbing" aria-label="拖动排序">
+      <button {...attributes} {...listeners} className={cx("cursor-grab touch-none transition active:cursor-grabbing", active && section.visible ? "text-brand-500" : "text-ink-300 hover:text-ink-600")} aria-label="拖动排序">
         <IconGrip size={14} />
       </button>
-      <span className="w-4 text-right font-mono text-[10px] text-ink-300">{section.order}</span>
-      <span className={cx("min-w-0 flex-1 truncate text-[12.5px]", section.visible ? "font-medium text-ink-800" : "text-ink-400 line-through decoration-ink-300")}>
+      <span className={cx("w-4 text-right font-mono text-[10px]", active && section.visible ? "text-brand-500" : "text-ink-300")}>{section.order}</span>
+      <button
+        type="button"
+        onClick={scrollToSection}
+        title="点击跳转到该模块"
+        className={cx(
+          "min-w-0 flex-1 truncate rounded text-left text-[12.5px] transition-colors hover:text-brand-700",
+          section.visible ? (active ? "font-bold text-brand-800" : "font-medium text-ink-800") : "text-ink-400 line-through decoration-ink-300"
+        )}
+      >
         {section.title}
-      </span>
+      </button>
       <span className="font-mono text-[10px] text-ink-300">{section.type === "basic_info" ? "" : section.blocks.length}</span>
       <button className="tool-btn h-6 w-6 opacity-0 transition group-hover:opacity-100" onClick={() => toggleSection(resumeId, section.section_id)} aria-label="显示/隐藏">
         {section.visible ? <IconEye size={12} /> : <IconEyeOff size={12} />}
@@ -42,7 +54,7 @@ function OutlineItem({ section, resumeId }: { section: Section; resumeId: string
   );
 }
 
-export function OutlinePanel({ resume }: { resume: Resume }) {
+export function OutlinePanel({ resume, activeId }: { resume: Resume; activeId?: string | null }) {
   const reorderSections = useApp((s) => s.reorderSections);
   const toast = useApp((s) => s.toast);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
@@ -69,7 +81,7 @@ export function OutlinePanel({ resume }: { resume: Resume }) {
         <SortableContext items={sections.map((s) => s.section_id)} strategy={verticalListSortingStrategy}>
           <ul className="flex flex-col gap-0.5 px-1.5 pb-3">
             {sections.map((s) => (
-              <OutlineItem key={s.section_id} section={s} resumeId={resume.id} />
+              <OutlineItem key={s.section_id} section={s} resumeId={resume.id} active={activeId === s.section_id} />
             ))}
           </ul>
         </SortableContext>

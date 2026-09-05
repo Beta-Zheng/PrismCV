@@ -70,7 +70,7 @@ function ToolbarMenu({
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-[calc(100%+7px)] z-30 w-60 rounded-2xl border border-ink-200 bg-white p-3 shadow-xl shadow-ink-950/15"
+            className="absolute left-0 top-[calc(100%+8px)] z-30 w-64 rounded-2xl border border-ink-200 bg-white p-3.5 shadow-xl shadow-ink-950/15"
         >
           <p className="mb-2.5 border-b border-ink-100 pb-2 text-[11px] leading-snug text-ink-400">{desc}</p>
           {children}
@@ -90,17 +90,20 @@ function MenuSection({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-function SortableSection({ resume, section, onRequestAI }: { resume: Resume; section: Section; onRequestAI: (s: string, b: string, a: AIAction) => void }) {
+function SortableSection({ resume, section, onRequestAI, highlight, dim }: { resume: Resume; section: Section; onRequestAI: (s: string, b: string, a: AIAction) => void; highlight?: boolean; dim?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.section_id });
   return (
     <div
       ref={setNodeRef}
+      data-section-id={section.section_id}
       style={{
         transform: transform ? `${CSS.Transform.toString(transform)}${isDragging ? " rotate(2deg)" : ""}` : undefined,
         transition,
       }}
       className={cx(
-        "rounded-xl",
+        "rounded-xl transition-[opacity,box-shadow] duration-300",
+        highlight && !isDragging && "shadow-[0_16px_40px_-26px_rgba(99,102,241,0.6)] ring-1 ring-brand-300",
+        dim && "opacity-55 hover:opacity-90",
         isDragging && "z-20 opacity-95 shadow-[0_24px_48px_-12px_rgba(99,102,241,0.45)] ring-1 ring-brand-300"
       )}
     >
@@ -145,6 +148,39 @@ export default function Editor({ resumeId }: { resumeId: string }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const sections = useMemo(() => (resume ? [...resume.data.sections].sort((a, b) => a.order - b.order) : []), [resume]);
 
+  // ---------- Scrollspy：视口顶部 reading line 命中的模块突出显示，其余淡化 ----------
+  const scrollRef = useRef<HTMLElement>(null);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  // 正在输入时不淡化：编辑动作发生在某个卡片内部，淡化它的邻居会干扰输入
+  const [editingField, setEditingField] = useState(false);
+  const sectionIdsKey = sections.map((s) => s.section_id).join(",");
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let raf = 0;
+    const compute = () => {
+      raf = 0;
+      const cards = el.querySelectorAll<HTMLElement>("[data-section-id]");
+      if (!cards.length) return;
+      const containerTop = el.getBoundingClientRect().top;
+      let current: string | null = cards[0].dataset.sectionId ?? null;
+      cards.forEach((c) => {
+        if (c.getBoundingClientRect().top - containerTop <= 150) current = c.dataset.sectionId ?? current;
+      });
+      setActiveSection(current);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(compute);
+    };
+    compute();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [sectionIdsKey]);
+
   // 预览打开 / 内容变化后测量纸张高度：A4 高 1123px @96dpi，超出即多页
   useEffect(() => {
     if (!previewOpen || !resume) return;
@@ -186,7 +222,7 @@ export default function Editor({ resumeId }: { resumeId: string }) {
   return (
     <div className="flex h-full flex-col">
       {/* 顶部工具栏：按功能分组，减少视觉混乱 */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-ink-200 bg-paper-25 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2.5 border-b border-ink-200 bg-paper-25 px-4 py-2.5">
         {/* 文档组 */}
         <div className="flex items-center gap-2 rounded-lg bg-white px-2 py-1.5 shadow-sm shadow-ink-950/5 ring-1 ring-ink-100">
           <button onClick={() => app.go({ name: "home" })} className="tool-btn h-7 w-7" aria-label="返回">
@@ -365,7 +401,7 @@ export default function Editor({ resumeId }: { resumeId: string }) {
         </ToolbarMenu>
 
         {/* 操作组 */}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2.5">
           <Btn variant="outline" className="h-8 text-[12px]" onClick={() => setAddSecOpen(true)}>
             <IconPlus size={13} /> 添加模块
           </Btn>
@@ -378,15 +414,31 @@ export default function Editor({ resumeId }: { resumeId: string }) {
       {/* 三栏 */}
       <div className="grid min-h-0 flex-1 grid-cols-[218px_minmax(0,1fr)_352px]">
         <aside className="min-h-0 overflow-y-auto border-r border-ink-200 bg-paper-50">
-          <OutlinePanel resume={resume} />
+          <OutlinePanel resume={resume} activeId={activeSection} />
         </aside>
 
-        <main className="min-h-0 overflow-y-auto bg-paper-100 px-4 py-4">
+        <main
+          ref={scrollRef}
+          className="min-h-0 overflow-y-auto bg-paper-100 px-5 py-5"
+          onFocusCapture={(e) => {
+            setEditingField(true);
+            const card = (e.target as HTMLElement).closest<HTMLElement>("[data-section-id]");
+            if (card?.dataset.sectionId) setActiveSection(card.dataset.sectionId);
+          }}
+          onBlurCapture={() => setEditingField(false)}
+        >
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={sections.map((s) => s.section_id)} strategy={verticalListSortingStrategy}>
-              <div className="mx-auto flex max-w-3xl flex-col gap-3 pb-8">
+              <div className="mx-auto flex max-w-3xl flex-col gap-4 pb-10">
                 {sections.map((s) => (
-                  <SortableSection key={s.section_id} resume={resume} section={s} onRequestAI={onRequestAI} />
+                  <SortableSection
+                    key={s.section_id}
+                    resume={resume}
+                    section={s}
+                    onRequestAI={onRequestAI}
+                    highlight={activeSection === s.section_id}
+                    dim={sections.length >= 2 && !editingField && activeSection !== null && activeSection !== s.section_id}
+                  />
                 ))}
                 <button onClick={() => setAddSecOpen(true)} className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink-200 py-4 text-[13px] font-medium text-ink-400 transition hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700">
                   <IconPlus size={14} /> 添加自定义模块（可参与拖拽排序）

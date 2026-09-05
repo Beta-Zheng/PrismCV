@@ -272,7 +272,7 @@ export default function Home() {
 
   return (
     <div
-      className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pb-16 pt-8"
+      className="relative mx-auto flex w-full max-w-6xl flex-col gap-7 px-6 pb-20 pt-10"
       onDragOver={(e) => {
         if (modal) return;
         e.preventDefault();
@@ -325,17 +325,17 @@ export default function Home() {
             <IconShield size={12} />
             {privacy.allowExternal ? "外部模型已开启" : "本地模式 · 外部模型默认关闭"}
           </span>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <button onClick={() => openCreate("file")} className="cta-ai flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-bold">
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <button onClick={() => openCreate("file")} className="cta-ai flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-bold">
               <IconPlus size={14} /> 新建简历
             </button>
-            <button onClick={() => openCreate("paste")} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
+            <button onClick={() => openCreate("paste")} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
               <IconClipboard size={13} /> 粘贴文本
             </button>
-            <button onClick={createBlank} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
+            <button onClick={createBlank} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
               空白简历
             </button>
-            <button onClick={loadSample} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
+            <button onClick={loadSample} className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[12.5px] font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700">
               <IconSpark size={13} /> 载入示例
             </button>
           </div>
@@ -343,9 +343,9 @@ export default function Home() {
       </header>
 
       {/* 数据带：纯数字四格（mono 数字；AI 指标带 sp-dot，看到光谱 = AI） */}
-      <section className="anim-fade-up grid grid-cols-2 gap-3 sm:grid-cols-4" style={{ animationDelay: "0.05s" }}>
+      <section className="anim-fade-up grid grid-cols-2 gap-4 sm:grid-cols-4" style={{ animationDelay: "0.05s" }}>
         {stats.map((s, i) => (
-          <div key={i} className="rounded-xl border border-line bg-surface px-4 py-3.5">
+          <div key={i} className="rounded-xl border border-line bg-surface px-5 py-4">
             <p className="text-[11px] font-medium text-ink-400">{s.label}</p>
             <StatValue value={s.value} />
             <p className="mt-1.5 text-[10.5px] text-ink-400">{s.sub}</p>
@@ -382,7 +382,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <AnimatePresence initial={false}>
               {resumes.map((r) => {
                 const sugSectionIds = new Set(suggestions.filter((s) => s.resume_id === r.id && s.status === "success").map((s) => s.section_id));
