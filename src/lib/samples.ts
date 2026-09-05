@@ -280,7 +280,7 @@ function profileFrontend(_: Identity): Pick<ResumeData, "sections"> & { roleTitl
           skills: ["WebSocket", "IndexedDB", "Yjs"],
         }),
       ],
-      education: { school: "华中科技大学", major: "计算机科学与技术 · 本科", start: "2014-09", end: "2018-06" },
+      education: { school: "北京邮电大学", major: "计算机科学与技术 · 本科", start: "2014-09", end: "2018-06" },
       skills: [
         { group: "核心技术", items: ["React", "TypeScript", "Vue", "Node.js", "Webpack", "Vite"] },
         { group: "工程与其他", items: ["微前端", "性能优化", "前端监控", "CI/CD", "Docker", "MySQL"] },
@@ -360,7 +360,7 @@ function profileData(_: Identity): Pick<ResumeData, "sections"> & { roleTitle: s
           skills: ["马尔可夫链", "归因分析", "Hive", "Pandas"],
         }),
       ],
-      education: { school: "华东师范大学", major: "统计学 · 本科", start: "2015-09", end: "2019-06" },
+      education: { school: "北京邮电大学", major: "信息与计算科学 · 本科", start: "2015-09", end: "2019-06" },
       skills: [
         { group: "分析方法", items: ["A/B 实验设计", "归因分析", "用户分层", "留存建模", "因果推断"] },
         { group: "工具", items: ["SQL", "Python", "Pandas", "XGBoost", "Hive", "Tableau", "Looker"] },
