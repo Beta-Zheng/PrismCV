@@ -310,23 +310,25 @@ export default function Home() {
       {/* 品牌氛围光：低透明度径向渐变，不参与交互 */}
       <div aria-hidden className="pointer-events-none absolute -top-10 right-0 -z-10 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
 
-      {/* 问候行：serif 标题 + 隐私徽章 + 新建主按钮（本页唯一实心光谱 CTA） */}
-      <header className="anim-fade-up flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-brand-600">
+      {/* 问候区：两行结构——元信息行（眉题 + 隐私状态）与主行（标题块 + 动作组），避免右侧两层堆叠 */}
+      <header className="anim-fade-up flex flex-col gap-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-brand-600">
             <IconZap size={12} /> Local-first Resume Workbench
           </p>
-          <h1 className="font-display text-[34px] font-black leading-tight text-ink-900">简历工作台</h1>
-          <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-ink-500">
-            上传简历 → 结构化解析 → 模块编辑与拖拽排序 → JD 匹配 → AI 建议（需确认）→ PDF 导出。默认数据不出本机。
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2.5">
           <span className={cx("chip px-2.5 py-1 text-[11.5px] ring-1", privacy.allowExternal ? "bg-warn-bg text-warn ring-warn/30" : "bg-ok-bg text-ok ring-ok/30")}>
             <IconShield size={12} />
             {privacy.allowExternal ? "外部模型已开启" : "本地模式 · 外部模型默认关闭"}
           </span>
-          <div className="flex flex-wrap items-center justify-end gap-2.5">
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
+          <div className="min-w-0">
+            <h1 className="font-display text-[34px] font-black leading-tight text-ink-900">简历工作台</h1>
+            <p className="mt-2.5 max-w-xl text-[13.5px] leading-relaxed text-ink-500">
+              上传简历 → 结构化解析 → 模块编辑与拖拽排序 → JD 匹配 → AI 建议（需确认）→ PDF 导出。默认数据不出本机。
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
             <button onClick={() => openCreate("file")} className="cta-ai flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-[13px] font-bold">
               <IconPlus size={14} /> 新建简历
             </button>
