@@ -140,8 +140,9 @@ npm test              # 单元测试（parser / jd / ai / utils / flows）
 
 ## 📛 名称由来
 
-**Prism**（棱镜）——一束白光穿过棱镜，被分成一条光谱，正如界面里那道 AI 光谱（`#38BDF8 → #6366F1 → #C084FC`）；简历也是一块棱镜：把真实的你，折射成机会想看到的样子。
+**Prism**（棱镜）：
 
+Every career is a spectrum — split it into light：把"过往经历"折射成"面试官想看到的你"。
 ## License
 
 [MIT](LICENSE)
