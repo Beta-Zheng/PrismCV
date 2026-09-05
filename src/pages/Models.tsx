@@ -54,7 +54,7 @@ function ModelForm({ initial, onClose }: { initial: ModelProvider | null; onClos
     <Modal open onClose={onClose} width="max-w-md">
       <ModalHeader title={initial ? "编辑模型" : "新增模型"} sub={m.type === "external" ? "外部模型默认不参与路由，除非在隐私设置中显式开启" : "本地模型优先参与路由"} onClose={onClose} />
       <div className="flex flex-col gap-3 px-5 pb-5">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="field-label">名称</span>
             <input className="field-input" value={m.name} placeholder="本地 Ollama" onChange={(e) => set({ name: e.target.value })} />
@@ -87,7 +87,7 @@ function ModelForm({ initial, onClose }: { initial: ModelProvider | null; onClos
           <span className="field-label">Base URL</span>
           <input className="field-input font-mono" value={m.base_url} placeholder={m.protocol === "ollama" ? "http://localhost:11434" : "https://api.openai.com/v1"} onChange={(e) => set({ base_url: e.target.value })} />
         </label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="field-label">Model</span>
             <input className="field-input font-mono" value={m.model_name} placeholder={m.protocol === "ollama" ? "qwen2.5:7b" : "gpt-4o-mini"} onChange={(e) => set({ model_name: e.target.value })} />
@@ -102,7 +102,7 @@ function ModelForm({ initial, onClose }: { initial: ModelProvider | null; onClos
             </div>
           </label>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="block">
             <span className="field-label">Temperature</span>
             <input className="field-input font-mono" type="number" step={0.1} min={0} max={2} value={m.temperature} onChange={(e) => set({ temperature: Number(e.target.value) })} />

@@ -12,7 +12,7 @@ import { SectionCard } from "../components/blocks";
 import { AIPanel, JDPanel, OutlinePanel } from "../components/panels";
 import { A4Sheet, MIN_ZOOM } from "../components/template";
 import { Btn, Modal, ModalHeader, SaveIndicator } from "../components/ui";
-import { IconAlert, IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconLayout, IconPalette, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
+import { IconAlert, IconBookOpen, IconCheck, IconChevronDown, IconChevronLeft, IconGrip, IconLayout, IconPalette, IconPanelRight, IconPlus, IconPrinter, IconSpark, IconTarget, IconX } from "../components/icons";
 
 const THEME_COLORS = ["#4F46E5", "#1d4ed8", "#9f1239", "#b45309", "#334155"];
 
@@ -155,6 +155,8 @@ export default function Editor({ resumeId }: { resumeId: string }) {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   // 鼠标悬停的模块优先成为高亮对象；移开后回落到滚动判定
   const [hoverSection, setHoverSection] = useState<string | null>(null);
+  // 移动端（<md）左右两栏折叠为抽屉：none=仅中栏，outline=模块大纲，panel=AI/JD 面板
+  const [mobilePanel, setMobilePanel] = useState<"none" | "outline" | "panel">("none");
   // 正在输入时不淡化：编辑动作发生在某个卡片内部，淡化它的邻居会干扰输入
   const [editingField, setEditingField] = useState(false);
   const sectionIdsKey = sections.map((s) => s.section_id).join(",");
@@ -406,6 +408,25 @@ export default function Editor({ resumeId }: { resumeId: string }) {
 
         {/* 操作组 */}
         <div className="ml-auto flex items-center gap-2.5">
+          {/* 移动端抽屉开关：<md 显示，桌面隐藏 */}
+          <div className="flex items-center gap-1.5 md:hidden">
+            <button
+              className={cx("tool-btn h-8 w-8", mobilePanel === "outline" && "bg-brand-50 text-brand-700")}
+              aria-label="打开模块大纲"
+              title="模块大纲"
+              onClick={() => setMobilePanel((m) => (m === "outline" ? "none" : "outline"))}
+            >
+              <IconBookOpen size={16} />
+            </button>
+            <button
+              className={cx("tool-btn h-8 w-8", mobilePanel === "panel" && "bg-brand-50 text-brand-700")}
+              aria-label="打开 AI 与 JD 面板"
+              title="AI / JD 面板"
+              onClick={() => setMobilePanel((m) => (m === "panel" ? "none" : "panel"))}
+            >
+              <IconPanelRight size={16} />
+            </button>
+          </div>
           <Btn variant="outline" className="h-8 text-[12px]" onClick={() => setAddSecOpen(true)}>
             <IconPlus size={13} /> 添加模块
           </Btn>
@@ -415,9 +436,19 @@ export default function Editor({ resumeId }: { resumeId: string }) {
         </div>
       </div>
 
-      {/* 三栏 */}
-      <div className="grid min-h-0 flex-1 grid-cols-[218px_minmax(0,1fr)_352px]">
-        <aside className="min-h-0 overflow-y-auto border-r border-ink-200 bg-paper-50">
+      {/* 三栏：<md 折叠为单栏（左右栏转抽屉），md+ 恢复三栏网格 */}
+      {mobilePanel !== "none" && (
+        <div className="fixed inset-0 z-30 bg-ink-950/45 md:hidden" onClick={() => setMobilePanel("none")} aria-hidden="true" />
+      )}
+      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[218px_minmax(0,1fr)_352px]">
+        <aside
+          className={cx(
+            "min-h-0 overflow-y-auto border-r border-ink-200 bg-paper-50",
+            mobilePanel === "outline"
+              ? "fixed bottom-0 left-0 top-11 z-40 block w-72 shadow-2xl shadow-ink-950/25 md:static md:z-auto md:block md:w-auto md:shadow-none"
+              : "hidden md:block",
+          )}
+        >
           <OutlinePanel resume={resume} activeId={activeSection} />
         </aside>
 
@@ -456,7 +487,14 @@ export default function Editor({ resumeId }: { resumeId: string }) {
           </DndContext>
         </main>
 
-        <aside className="flex min-h-0 flex-col border-l border-ink-200 bg-paper-50">
+        <aside
+          className={cx(
+            "min-h-0 flex-col border-l border-ink-200 bg-paper-50",
+            mobilePanel === "panel"
+              ? "fixed bottom-0 right-0 top-11 z-40 flex w-80 max-w-[88vw] shadow-2xl shadow-ink-950/25 md:static md:z-auto md:flex md:max-w-none md:shadow-none"
+              : "hidden md:flex",
+          )}
+        >
           <div className="flex border-b border-ink-200">
             {(
               [

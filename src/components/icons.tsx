@@ -317,3 +317,20 @@ export const IconSearch = (p: P) =>
       <path d="M21 21l-4.3-4.3" />
     </>
   ));
+
+export const IconMenu = (p: P) =>
+  base(p, (
+    <>
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+    </>
+  ));
+
+export const IconPanelRight = (p: P) =>
+  base(p, (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="15" y1="4" x2="15" y2="20" />
+    </>
+  ));

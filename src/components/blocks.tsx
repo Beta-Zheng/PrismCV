@@ -323,7 +323,7 @@ function BulletsEdit({
     onMarksChange(next);
   };
   return (
-    <div className="col-span-2 min-w-0">
+    <div className="sm:col-span-2 min-w-0">
       <div className="mb-1 flex items-center gap-2">
         <span className="field-label mb-0">要点（点行首符号可开关该条列表符号，支持上下移动）</span>
         <div className="ml-auto">
@@ -515,7 +515,7 @@ export function BlockCard({
             exit={{ height: 0, opacity: 0, transition: { duration: 0.16, ease: "easeIn" } }}
             className="overflow-hidden"
           >
-            <div className={cx("grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-ink-100 px-3 py-3", !block.visible && "opacity-50")}>
+            <div className={cx("grid grid-cols-1 gap-x-3 gap-y-2.5 sm:grid-cols-2 border-t border-ink-100 px-3 py-3", !block.visible && "opacity-50")}>
           {(isEntry || block.type === "certification" || block.type === "custom_text") && (
             <F label={block.type === "education_item" ? "学校" : block.type === "certification" ? "名称" : "标题"}>
               <input className="field-input" value={block.title} placeholder={block.type === "education_item" ? "XX 大学" : "公司 / 项目名"} onChange={(e) => patchBlock(resume.id, section.section_id, block.block_id, { title: e.target.value })} />
@@ -527,7 +527,7 @@ export function BlockCard({
                 <input className="field-input" value={block.subtitle} placeholder={block.type === "education_item" ? "专业 · 学历" : "职位 / 角色"} onChange={(e) => patchBlock(resume.id, section.section_id, block.block_id, { subtitle: e.target.value })} />
               </F>
               {(block.subtitles ?? []).length > 0 && (
-                <div className="col-span-2 flex flex-col gap-1.5">
+                <div className="sm:col-span-2 flex flex-col gap-1.5">
                   {block.subtitles!.map((st, i) => (
                     <div key={i} className="flex items-center gap-1.5">
                       <span className="shrink-0 text-[12px] text-ink-300" aria-hidden="true">
@@ -556,7 +556,7 @@ export function BlockCard({
               )}
               <button
                 type="button"
-                className="col-span-2 self-start inline-flex items-center gap-1 text-[12px] font-medium text-brand-600 transition hover:text-brand-700"
+                className="sm:col-span-2 self-start inline-flex items-center gap-1 text-[12px] font-medium text-brand-600 transition hover:text-brand-700"
                 onClick={() => patchBlock(resume.id, section.section_id, block.block_id, { subtitles: [...(block.subtitles ?? []), ""] })}
               >
                 <IconPlus size={12} /> 新增副标题
@@ -585,7 +585,7 @@ export function BlockCard({
              * 内容都会被转发为对 B 的一次合成点击 —— execCommand("bold") 被意外执行、
              * 焦点被按钮抢走，用户表现为「描述无法编辑」。要点区正是用了 div 包装
              * 才一直正常。两处编辑器的结构必须保持一致（均为 div，见 BulletsEdit）。 */
-            <div className="col-span-2 min-w-0">
+            <div className="sm:col-span-2 min-w-0">
               <span className="field-label">描述（可加粗 / 斜体）</span>
               <RichTextEditor
                 value={block.description}
@@ -596,12 +596,12 @@ export function BlockCard({
           ) : null}
 
           {block.type === "skill_group" && (
-            <F label="组名" className="col-span-2">
+            <F label="组名" className="sm:col-span-2">
               <input className="field-input" value={block.title} placeholder="如：核心技术" onChange={(e) => patchBlock(resume.id, section.section_id, block.block_id, { title: e.target.value })} />
             </F>
           )}
           {(block.type === "skill_group" || block.type === "project_experience_item") && (
-            <F label="技能标签" className="col-span-2">
+            <F label="技能标签" className="sm:col-span-2">
               <TagInput values={block.skills} onChange={(v) => patchBlock(resume.id, section.section_id, block.block_id, { skills: v })} placeholder="React、TypeScript…" />
             </F>
           )}
@@ -821,7 +821,7 @@ function BasicInfoEditor({ resume }: { resume: Resume }) {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 px-3 py-3">
+    <div className="grid grid-cols-1 gap-x-3 gap-y-2.5 sm:grid-cols-2 px-3 py-3">
       {fields.map((f) => (
         <RichField key={f.key} label={f.label} value={b[f.key]} placeholder={f.ph} onChange={(v) => patchBasic(resume.id, { [f.key]: v })} />
       ))}
@@ -847,7 +847,7 @@ function BasicInfoEditor({ resume }: { resume: Resume }) {
         </>
       )}
       {/* 自定义信息项：固定六项之外的补充字段（如 期望薪资 / 政治面貌），随联系方式一行渲染 */}
-      <div className="col-span-2">
+      <div className="sm:col-span-2">
         <div className="mb-1 flex items-center justify-between">
           <span className="field-label">自定义信息项</span>
           <button

@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from "react";
+import { Component, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cx } from "./lib/utils";
 import { useApp, type View } from "./lib/store";
@@ -9,7 +9,7 @@ import Home from "./pages/Home";
 import Editor from "./pages/Editor";
 import Models from "./pages/Models";
 import Settings from "./pages/Settings";
-import { IconAlert, IconClipboard, IconCpu, IconDatabase, IconSearch, IconShield } from "./components/icons";
+import { IconAlert, IconClipboard, IconCpu, IconDatabase, IconMenu, IconSearch, IconShield } from "./components/icons";
 
 /** 全局错误边界：任何渲染异常都显示可读的错误卡片，而不是白屏 */
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -78,6 +78,8 @@ function AppShell() {
   const go = useApp((s) => s.go);
   const privacy = useApp((s) => s.privacy);
   const resumeCount = useApp((s) => s.resumes.length);
+  // 移动端抽屉导航（<md）：桌面侧栏 fixed 化后滑入滑出
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const nav: Array<{ key: View["name"]; label: string; icon: React.ReactNode; view: View }> = [
     { key: "home", label: "工作台", icon: <IconClipboard size={16} />, view: { name: "home" } },
@@ -88,8 +90,24 @@ function AppShell() {
 
   return (
     <div id="app-root" className="flex h-screen overflow-hidden bg-page">
-      {/* 侧边导航（v1.4 浅色化：surface 底 + line 分隔，墨色退出填充块） */}
-      <nav className="flex w-[232px] shrink-0 flex-col border-r border-line bg-surface">
+      {/* 移动端顶栏（<md）：汉堡按钮 + 品牌 */}
+      <div className="fixed inset-x-0 top-0 z-40 flex items-center gap-2.5 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur md:hidden">
+        <button onClick={() => setDrawerOpen(true)} className="tool-btn" aria-label="打开导航菜单">
+          <IconMenu size={18} />
+        </button>
+        <Logo size={24} />
+        <span className="font-display text-[14px] font-black leading-none text-ink-900">PrismCV</span>
+      </div>
+      {/* 抽屉遮罩 */}
+      {drawerOpen && <div className="fixed inset-0 z-40 bg-ink-950/45 md:hidden" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
+      {/* 侧边导航（v1.4 浅色化；<md 转为固定抽屉，滑入滑出） */}
+      <nav
+        className={cx(
+          "flex w-[232px] shrink-0 flex-col border-r border-line bg-surface",
+          "fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:static md:z-auto md:translate-x-0 md:transition-none",
+          drawerOpen ? "translate-x-0 shadow-2xl shadow-ink-950/25" : "-translate-x-full",
+        )}
+      >
         <div className="flex items-center gap-2.5 px-4 pb-5 pt-5">
           <Logo size={36} />
           <div>
@@ -100,7 +118,16 @@ function AppShell() {
 
         <div className="flex flex-col gap-1 px-2.5">
           {nav.map((n) => (
-            <NavItem key={n.key} active={activeKey === n.key} onClick={() => go(n.view)} icon={n.icon} label={n.label} />
+            <NavItem
+              key={n.key}
+              active={activeKey === n.key}
+              onClick={() => {
+                go(n.view);
+                setDrawerOpen(false);
+              }}
+              icon={n.icon}
+              label={n.label}
+            />
           ))}
         </div>
 
@@ -134,7 +161,7 @@ function AppShell() {
       </nav>
 
       {/* 主区域：页面切换时淡入上移（AnimatePresence 处理退场），布局类移到 motion.div 保持各页 h-full 语义 */}
-      <main className="min-w-0 flex-1 overflow-hidden">
+      <main className="mt-11 min-w-0 flex-1 overflow-hidden md:mt-0">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={view.name}
