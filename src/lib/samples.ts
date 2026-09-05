@@ -1,13 +1,17 @@
-import type { ResumeData } from "../types";
+import type { ResumeData, Section } from "../types";
 import { uid, nowISO } from "./utils";
 
 /**
  * 示例简历 —— 仅在用户主动点击「载入示例」时使用，不会自动写入。
  *
- * 内容设定：北邮自动化本科背景、面向 AI 应用（大模型）岗位的虚构候选人。
- * 技术事实口径参考公开社区资料（RAGAS 忠实度、混合检索召回率、vLLM 多 LoRA
- * 部署等常见实践），公司与人物均为虚构，无真实个人信息。
+ * 三个完整示例档案（AI 应用 / 高级前端 / 数据分析），每次载入随机抽取一份，
+ * 并从随机姓名池分配身份 → 同一键多次载入可得不同人设的简历。
+ *
+ * 内容设定均为虚构公司与人物，无真实个人信息；技术事实口径参考公开社区
+ * 资料（RAGAS 忠实度、混合检索召回率、vLLM 多 LoRA 部署等常见实践）。
  */
+
+/* ---------------- 随机身份 ---------------- */
 
 /** 随机姓名池：名字与邮箱前缀成对，每次「载入示例」随机取一位 */
 const NAME_POOL = [
@@ -19,181 +23,19 @@ const NAME_POOL = [
   { name: "许望舒", email: "xuwangshu" },
 ];
 
-function pickIdentity() {
-  const pick = NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)];
-  const phone = `1${["38", "39", "58", "66", "77"][Math.floor(Math.random() * 5)]}-${String(1000 + Math.floor(Math.random() * 9000))}-${String(1000 + Math.floor(Math.random() * 9000))}`;
-  return { ...pick, phone };
+interface Identity {
+  name: string;
+  email: string;
+  phone: string;
 }
 
-export function buildSampleResume(): ResumeData {
-  const b = (partial: Partial<ReturnType<typeof blk>> & { type: ReturnType<typeof blk>["type"] }) => ({
-    ...blk(partial.type),
-    ...partial,
-  });
-  const who = pickIdentity();
-  return {
-    basic_info: {
-      name: who.name,
-      title: "AI 应用工程师 · 大模型方向",
-      email: `${who.email}@example.com`,
-      phone: who.phone,
-      location: "北京",
-      website: `${who.email}.example.com`,
-    },
-    sections: [
-      {
-        section_id: "basic_info",
-        type: "basic_info",
-        title: "基本信息",
-        visible: true,
-        order: 0,
-        blocks: [],
-      },
-      {
-        section_id: "summary",
-        type: "summary",
-        title: "个人总结",
-        visible: true,
-        order: 1,
-        blocks: [
-          {
-            ...blk("summary"),
-            description:
-              "7 年软件研发经验，近 4 年专注大模型应用落地。主导企业级 RAG 知识库问答与多 Agent 工作流从 0 到 1，覆盖 3 条业务线、日均 2 万+ 次调用；以 RAGAS 建立自动化评测闭环，答案忠实度（Faithfulness）从 71% 提升至 92%。兼具工程化与数据能力，能独立完成从数据构建、SFT/LoRA 微调到推理部署的全链路交付。",
-          },
-        ],
-      },
-      {
-        section_id: "work_experience",
-        type: "work_experience",
-        title: "工作经历",
-        visible: true,
-        order: 2,
-        blocks: [
-          {
-            ...b({
-              type: "work_experience_item",
-              title: "云阙智能",
-              subtitle: "AI 应用工程师 / LLM 应用负责人",
-              start_date: "2021-03",
-              end_date: "至今",
-              location: "北京",
-            }),
-            bullets: [
-              "主导企业级 RAG 知识库问答系统从 0 到 1，采用混合检索（向量 + BM25）与 Rerank 重排，检索召回率从 58% 提升至 89%，覆盖 12 万篇内部文档",
-              "建立 RAGAS 自动化评测流水线，答案忠实度（Faithfulness）从 71% 提升至 92%，幻觉类客诉下降 76%",
-              "基于 vLLM 部署多 LoRA 推理服务，单基座挂载 4 个业务适配器，推理成本降低约 60%，P95 首字延迟控制在 1.2s 内",
-              "负责 4 人 AI 应用小组，沉淀 Prompt 管理与灰度发布规范，需求平均交付周期从 2 周缩短至 3 天",
-            ],
-          },
-          {
-            ...b({
-              type: "work_experience_item",
-              title: "深流科技",
-              subtitle: "后端工程师",
-              start_date: "2018-07",
-              end_date: "2021-02",
-              location: "北京",
-            }),
-            bullets: [
-              "负责数据接入与 ETL 平台开发，日均处理 2000 万条埋点数据，链路可用性 99.95%",
-              "设计高可用任务调度系统，故障自动恢复时间小于 5 分钟",
-              "推动服务容器化迁移上 Kubernetes，发布效率提升 3 倍",
-            ],
-          },
-        ],
-      },
-      {
-        section_id: "project_experience",
-        type: "project_experience",
-        title: "项目经历",
-        visible: true,
-        order: 3,
-        blocks: [
-          {
-            ...b({
-              type: "project_experience_item",
-              title: "企业知识库 RAG 问答助手",
-              subtitle: "发起人 / 负责人",
-              start_date: "2022-05",
-              end_date: "至今",
-            }),
-            bullets: [
-              "设计「多路召回 + Query 改写 + Rerank 重排」三段检索链路，Context Recall 提升 31 个百分点",
-              "实现答案引用溯源与无据拒答策略，上线后答案采纳率 87%，成为公司内部使用率最高的 AI 工具",
-            ],
-            skills: ["LangChain", "Milvus", "BM25", "RAGAS", "vLLM"],
-            links: [],
-          },
-          {
-            ...b({
-              type: "project_experience_item",
-              title: "客服领域模型 LoRA 微调",
-              subtitle: "核心成员",
-              start_date: "2023-03",
-              end_date: "2023-11",
-            }),
-            bullets: [
-              "清洗并构建 2.3 万条领域指令数据集，基于 LLaMA-Factory 完成 SFT + LoRA 微调",
-              "领域评测集准确率从基座 74% 提升至 91%，相比全量微调训练成本降低约 85%",
-            ],
-            skills: ["LoRA", "SFT", "LLaMA-Factory", "DeepSpeed", "Python"],
-            links: [],
-          },
-        ],
-      },
-      {
-        section_id: "education",
-        type: "education",
-        title: "教育经历",
-        visible: true,
-        order: 4,
-        blocks: [
-          {
-            ...b({
-              type: "education_item",
-              title: "北京邮电大学",
-              subtitle: "自动化 · 本科",
-              start_date: "2014-09",
-              end_date: "2018-06",
-            }),
-          },
-        ],
-      },
-      {
-        section_id: "skills",
-        type: "skills",
-        title: "技能",
-        visible: true,
-        order: 5,
-        blocks: [
-          {
-            ...blk("skill_group"),
-            title: "大模型应用",
-            skills: ["Prompt 工程", "RAG", "Agent 编排", "SFT/LoRA 微调", "RAGAS 评测", "模型部署"],
-          },
-          {
-            ...blk("skill_group"),
-            title: "工程与其他",
-            skills: ["Python", "TypeScript", "LangChain", "vLLM", "Milvus", "FastAPI", "Docker/K8s"],
-          },
-        ],
-      },
-      {
-        section_id: "certifications",
-        type: "certifications",
-        title: "证书奖项",
-        visible: true,
-        order: 6,
-        blocks: [
-          { ...b({ type: "certification", title: "云阙智能年度技术之星", start_date: "2023" }) },
-          { ...b({ type: "certification", title: "软考高级 · 系统架构设计师", start_date: "2021" }) },
-        ],
-      },
-    ],
-    metadata: { source: "sample", created_at: nowISO() },
-  };
+function pickIdentity(): Identity {
+  const pick = NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)];
+  const phone = `1${["38", "39", "58", "66", "77"][Math.floor(Math.random() * 5)]}-${String(1000 + Math.floor(Math.random() * 9000))}-${String(1000 + Math.floor(Math.random() * 9000))}`;
+  return { name: pick.name, email: pick.email, phone };
 }
+
+/* ---------------- 构件小工具 ---------------- */
 
 function blk(type: import("../types").BlockType) {
   return {
@@ -210,6 +52,333 @@ function blk(type: import("../types").BlockType) {
     links: [] as string[],
     visible: true,
     order: 0,
+  };
+}
+
+const b = (partial: Partial<ReturnType<typeof blk>> & { type: ReturnType<typeof blk>["type"] }) => ({
+  ...blk(partial.type),
+  ...partial,
+});
+
+/** 六个固定模块按标准顺序组装（basic_info 由外层统一填充） */
+function assembleSections(parts: {
+  summary: string;
+  work: ReturnType<typeof b>[];
+  projects: ReturnType<typeof b>[];
+  education: { school: string; major: string; start: string; end: string };
+  skills: { group: string; items: string[] }[];
+  certs: { title: string; year: string }[];
+}): Section[] {
+  return [
+    { section_id: "basic_info", type: "basic_info", title: "基本信息", visible: true, order: 0, blocks: [] },
+    {
+      section_id: "summary",
+      type: "summary",
+      title: "个人总结",
+      visible: true,
+      order: 1,
+      blocks: [{ ...blk("summary"), description: parts.summary }],
+    },
+    {
+      section_id: "work_experience",
+      type: "work_experience",
+      title: "工作经历",
+      visible: true,
+      order: 2,
+      blocks: parts.work,
+    },
+    {
+      section_id: "project_experience",
+      type: "project_experience",
+      title: "项目经历",
+      visible: true,
+      order: 3,
+      blocks: parts.projects,
+    },
+    {
+      section_id: "education",
+      type: "education",
+      title: "教育经历",
+      visible: true,
+      order: 4,
+      blocks: [
+        b({
+          type: "education_item",
+          title: parts.education.school,
+          subtitle: parts.education.major,
+          start_date: parts.education.start,
+          end_date: parts.education.end,
+        }),
+      ],
+    },
+    {
+      section_id: "skills",
+      type: "skills",
+      title: "技能",
+      visible: true,
+      order: 5,
+      blocks: parts.skills.map((s) => ({ ...blk("skill_group"), title: s.group, skills: s.items })),
+    },
+    {
+      section_id: "certifications",
+      type: "certifications",
+      title: "证书奖项",
+      visible: true,
+      order: 6,
+      blocks: parts.certs.map((c) => b({ type: "certification", title: c.title, start_date: c.year })),
+    },
+  ];
+}
+
+/* ---------------- 档案一：AI 应用工程师（大模型方向） ---------------- */
+
+function profileAI(_: Identity): Pick<ResumeData, "sections"> & { roleTitle: string; location: string } {
+  return {
+    roleTitle: "AI 应用工程师 · 大模型方向",
+    location: "北京",
+    sections: assembleSections({
+      summary:
+        "7 年软件研发经验，近 4 年专注大模型应用落地。主导企业级 RAG 知识库问答与多 Agent 工作流从 0 到 1，覆盖 3 条业务线、日均 2 万+ 次调用；以 RAGAS 建立自动化评测闭环，答案忠实度（Faithfulness）从 71% 提升至 92%。兼具工程化与数据能力，能独立完成从数据构建、SFT/LoRA 微调到推理部署的全链路交付。",
+      work: [
+        b({
+          type: "work_experience_item",
+          title: "云阙智能",
+          subtitle: "AI 应用工程师 / LLM 应用负责人",
+          start_date: "2021-03",
+          end_date: "至今",
+          location: "北京",
+          bullets: [
+            "主导企业级 RAG 知识库问答系统从 0 到 1，采用混合检索（向量 + BM25）与 Rerank 重排，检索召回率从 58% 提升至 89%，覆盖 12 万篇内部文档",
+            "建立 RAGAS 自动化评测流水线，答案忠实度（Faithfulness）从 71% 提升至 92%，幻觉类客诉下降 76%",
+            "基于 vLLM 部署多 LoRA 推理服务，单基座挂载 4 个业务适配器，推理成本降低约 60%，P95 首字延迟控制在 1.2s 内",
+            "负责 4 人 AI 应用小组，沉淀 Prompt 管理与灰度发布规范，需求平均交付周期从 2 周缩短至 3 天",
+          ],
+        }),
+        b({
+          type: "work_experience_item",
+          title: "深流科技",
+          subtitle: "后端工程师",
+          start_date: "2018-07",
+          end_date: "2021-02",
+          location: "北京",
+          bullets: [
+            "负责数据接入与 ETL 平台开发，日均处理 2000 万条埋点数据，链路可用性 99.95%",
+            "设计高可用任务调度系统，故障自动恢复时间小于 5 分钟",
+            "推动服务容器化迁移上 Kubernetes，发布效率提升 3 倍",
+          ],
+        }),
+      ],
+      projects: [
+        b({
+          type: "project_experience_item",
+          title: "企业知识库 RAG 问答助手",
+          subtitle: "发起人 / 负责人",
+          start_date: "2022-05",
+          end_date: "至今",
+          bullets: [
+            "设计「多路召回 + Query 改写 + Rerank 重排」三段检索链路，Context Recall 提升 31 个百分点",
+            "实现答案引用溯源与无据拒答策略，上线后答案采纳率 87%，成为公司内部使用率最高的 AI 工具",
+          ],
+          skills: ["LangChain", "Milvus", "BM25", "RAGAS", "vLLM"],
+        }),
+        b({
+          type: "project_experience_item",
+          title: "客服领域模型 LoRA 微调",
+          subtitle: "核心成员",
+          start_date: "2023-03",
+          end_date: "2023-11",
+          bullets: [
+            "清洗并构建 2.3 万条领域指令数据集，基于 LLaMA-Factory 完成 SFT + LoRA 微调",
+            "领域评测集准确率从基座 74% 提升至 91%，相比全量微调训练成本降低约 85%",
+          ],
+          skills: ["LoRA", "SFT", "LLaMA-Factory", "DeepSpeed", "Python"],
+        }),
+      ],
+      education: { school: "北京邮电大学", major: "自动化 · 本科", start: "2014-09", end: "2018-06" },
+      skills: [
+        { group: "大模型应用", items: ["Prompt 工程", "RAG", "Agent 编排", "SFT/LoRA 微调", "RAGAS 评测", "模型部署"] },
+        { group: "工程与其他", items: ["Python", "TypeScript", "LangChain", "vLLM", "Milvus", "FastAPI", "Docker/K8s"] },
+      ],
+      certs: [
+        { title: "云阙智能年度技术之星", year: "2023" },
+        { title: "软考高级 · 系统架构设计师", year: "2021" },
+      ],
+    }),
+  };
+}
+
+/* ---------------- 档案二：高级前端工程师 ---------------- */
+
+function profileFrontend(_: Identity): Pick<ResumeData, "sections"> & { roleTitle: string; location: string } {
+  return {
+    roleTitle: "高级前端工程师",
+    location: "杭州",
+    sections: assembleSections({
+      summary:
+        "7 年前端开发经验，专注大型 Web 应用架构与性能优化。主导过日活 80 万的中台系统重构，首屏耗时从 3.2s 降至 1.1s；落地微前端方案支撑 6 个子应用独立发布。熟悉 React 生态与前端工程化全链路，长期负责团队代码规范与新人培养。",
+      work: [
+        b({
+          type: "work_experience_item",
+          title: "星澜互动",
+          subtitle: "高级前端工程师 / 前端组长",
+          start_date: "2021-03",
+          end_date: "至今",
+          location: "杭州",
+          bullets: [
+            "主导交易中台前端重构，将 jQuery 单体迁移至 React + TypeScript，缺陷率下降 42%",
+            "设计微前端落地方案，6 个子应用独立发布，发布耗时从 40 分钟缩短至 8 分钟",
+            "搭建前端监控体系，覆盖性能、异常与业务指标，线上问题平均发现时间缩短至 3 分钟",
+            "负责 5 人小组的技术评审与带教，推动组件库沉淀，复用率达到 70%",
+          ],
+        }),
+        b({
+          type: "work_experience_item",
+          title: "青柠网络",
+          subtitle: "前端工程师",
+          start_date: "2018-07",
+          end_date: "2021-02",
+          location: "成都",
+          bullets: [
+            "负责电商营销活动页开发，累计交付 30+ 场大促活动，零线上事故",
+            "实现活动页搭建平台原型，运营配置效率提升 5 倍",
+            "优化移动端首屏加载，通过资源拆分与预加载将 LCP 从 2.8s 降至 1.4s",
+          ],
+        }),
+      ],
+      projects: [
+        b({
+          type: "project_experience_item",
+          title: "Atlas 设计组件库",
+          subtitle: "发起人 / 核心维护者",
+          start_date: "2022-01",
+          end_date: "至今",
+          bullets: [
+            "从零搭建团队 React 组件库，覆盖 48 个组件，单元测试覆盖率 85%",
+            "编写主题定制与暗色模式方案，支撑 3 条产品线视觉统一",
+          ],
+          skills: ["React", "TypeScript", "Rollup", "Storybook"],
+        }),
+        b({
+          type: "project_experience_item",
+          title: "实时协作文档",
+          subtitle: "前端负责人",
+          start_date: "2020-03",
+          end_date: "2020-12",
+          bullets: [
+            "基于 CRDT 实现多人协同编辑，支持 50 人同时在线编辑不冲突",
+            "设计离线缓存与增量同步策略，弱网环境下编辑丢失率降为 0",
+          ],
+          skills: ["WebSocket", "IndexedDB", "Yjs"],
+        }),
+      ],
+      education: { school: "华中科技大学", major: "计算机科学与技术 · 本科", start: "2014-09", end: "2018-06" },
+      skills: [
+        { group: "核心技术", items: ["React", "TypeScript", "Vue", "Node.js", "Webpack", "Vite"] },
+        { group: "工程与其他", items: ["微前端", "性能优化", "前端监控", "CI/CD", "Docker", "MySQL"] },
+      ],
+      certs: [
+        { title: "星澜互动年度技术突破奖", year: "2023" },
+        { title: "AWS Certified Cloud Practitioner", year: "2022" },
+      ],
+    }),
+  };
+}
+
+/* ---------------- 档案三：数据分析师（增长方向） ---------------- */
+
+function profileData(_: Identity): Pick<ResumeData, "sections"> & { roleTitle: string; location: string } {
+  return {
+    roleTitle: "数据分析师 · 增长方向",
+    location: "上海",
+    sections: assembleSections({
+      summary:
+        "6 年数据分析经验，专注用户增长与商业化分析。搭建覆盖 200+ 指标的增长度量体系，主导的会员转化优化项目带来年化 GMV 增量 4800 万；熟练以 SQL / Python 完成从取数、建模到实验设计的全流程，擅长把数据结论翻译成可落地的业务动作。",
+      work: [
+        b({
+          type: "work_experience_item",
+          title: "澜舟零售",
+          subtitle: "高级数据分析师 / 增长分析负责人",
+          start_date: "2021-06",
+          end_date: "至今",
+          location: "上海",
+          bullets: [
+            "搭建用户增长度量体系，统一北极星指标与 200+ 过程指标口径，结束各部门「数出多门」",
+            "主导会员转化漏斗优化，通过人群分层与触点实验将付费转化率从 3.1% 提升至 4.6%，年化 GMV 增量 4800 万",
+            "设计 A/B 实验平台分析规范，年均支撑 120+ 场实验，实验结论采纳率 90% 以上",
+            "搭建留存预测模型（XGBoost），高流失风险用户识别准确率 82%，挽留活动 ROI 提升 2.4 倍",
+          ],
+        }),
+        b({
+          type: "work_experience_item",
+          title: "临江信息",
+          subtitle: "数据分析师",
+          start_date: "2019-07",
+          end_date: "2021-05",
+          location: "南京",
+          bullets: [
+            "负责内容社区核心指标日报与专题分析体系，取数自动化覆盖 80% 高频需求",
+            "完成首次投放归因模型搭建，将渠道预算再分配后获客成本下降 18%",
+          ],
+        }),
+      ],
+      projects: [
+        b({
+          type: "project_experience_item",
+          title: "用户分层与生命周期运营看板",
+          subtitle: "负责人",
+          start_date: "2022-08",
+          end_date: "2023-06",
+          bullets: [
+            "基于 RFM + 聚类完成千万级用户五层分层，分层策略接入自动化触达系统",
+            "Looker 看板覆盖 8 个业务团队，周均使用 400+ 次，替代 60% 的人工取数需求",
+          ],
+          skills: ["SQL", "Python", "XGBoost", "Looker"],
+        }),
+        b({
+          type: "project_experience_item",
+          title: "渠道投放归因分析",
+          subtitle: "核心成员",
+          start_date: "2020-04",
+          end_date: "2020-11",
+          bullets: [
+            "对比末次触点与马尔可夫链归因模型，识别 2 个被高估的付费渠道并推动预算迁移",
+            "搭建渠道质量评分卡，纳入后续全部投放决策流程",
+          ],
+          skills: ["马尔可夫链", "归因分析", "Hive", "Pandas"],
+        }),
+      ],
+      education: { school: "华东师范大学", major: "统计学 · 本科", start: "2015-09", end: "2019-06" },
+      skills: [
+        { group: "分析方法", items: ["A/B 实验设计", "归因分析", "用户分层", "留存建模", "因果推断"] },
+        { group: "工具", items: ["SQL", "Python", "Pandas", "XGBoost", "Hive", "Tableau", "Looker"] },
+      ],
+      certs: [
+        { title: "澜舟零售年度最佳分析案例", year: "2022" },
+        { title: "Google Data Analytics Professional Certificate", year: "2020" },
+      ],
+    }),
+  };
+}
+
+/* ---------------- 随机组装入口 ---------------- */
+
+const PROFILES = [profileAI, profileFrontend, profileData];
+
+/** 每次调用：随机身份 × 随机档案 → 一份完整示例简历 */
+export function buildSampleResume(): ResumeData {
+  const who = pickIdentity();
+  const profile = PROFILES[Math.floor(Math.random() * PROFILES.length)](who);
+  return {
+    basic_info: {
+      name: who.name,
+      title: profile.roleTitle,
+      email: `${who.email}@example.com`,
+      phone: who.phone,
+      location: profile.location,
+      website: `${who.email}.example.com`,
+    },
+    sections: profile.sections,
+    metadata: { source: "sample", created_at: nowISO() },
   };
 }
 
