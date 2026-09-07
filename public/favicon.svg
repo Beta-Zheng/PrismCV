@@ -1,19 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- PrismCV favicon：暗色版「靛纸航标」小尺寸优化版——元素占满画布、纸张放大、丝带加粗 -->
+  <!-- TouchstoneCV favicon v3 · 小尺寸辨识度优化
+       问题诊断：v2 深靛蓝底 + 深灰岩块，两个暗色糊在一起；元素留白多；16px 下副痕/碎痕全是噪点。
+       对策：底块提亮提饱和拉开明度差 / 岩块压暗 + 亮描边勾轮廓 / 元素整体放大 1.15 /
+             主金痕加粗至中段 4.5 / 只留 2 粒金屑并加大 / 删掉 16px 下不可见的副痕与碎痕 -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4338CA"/>
-      <stop offset="1" stop-color="#1E1B4B"/>
+      <stop offset="0" stop-color="#5B54E8"/>
+      <stop offset="1" stop-color="#312C8A"/>
     </linearGradient>
-    <linearGradient id="sp" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0" stop-color="#38BDF8"/>
-      <stop offset="0.52" stop-color="#818CF8"/>
-      <stop offset="1" stop-color="#C084FC"/>
+    <linearGradient id="stone" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#2E2E3A"/>
+      <stop offset="0.55" stop-color="#1C1C26"/>
+      <stop offset="1" stop-color="#14141C"/>
     </linearGradient>
+    <linearGradient id="gold" x1="0.05" y1="0.95" x2="0.95" y2="0.1">
+      <stop offset="0" stop-color="#D98A12"/>
+      <stop offset="0.42" stop-color="#F5B33F"/>
+      <stop offset="0.78" stop-color="#FBD05A"/>
+      <stop offset="1" stop-color="#FFF4CC"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#F5A623" stop-opacity="0.42"/>
+      <stop offset="0.55" stop-color="#F5A623" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#F5A623" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
-  <rect x="8" y="4" width="16" height="23" rx="2.5" fill="#FFFFFF"/>
-  <line x1="11" y1="9.5" x2="21" y2="9.5" stroke="#8B8FA3" stroke-width="2" stroke-linecap="round"/>
-  <line x1="11" y1="14" x2="18" y2="14" stroke="#C3C8FB" stroke-width="2" stroke-linecap="round"/>
-  <path d="M3.5 23.5 Q 16 29.5 28.5 20.5" stroke="url(#sp)" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+
+  <rect width="32" height="32" rx="8" fill="url(#bg)"/>
+  <circle cx="25" cy="7.5" r="8.5" fill="url(#halo)"/>
+
+  <g transform="rotate(-8 16 16)">
+    <path d="M7.84 4.54 L23.48 2.7 L27.39 17.42 L23.71 28.46 L8.99 29.15 L5.08 21.1 L4.62 11.44 Z"
+          fill="url(#stone)" stroke="#A9AFC4" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M8.87 7.42 Q 6.92 14.32 8.07 20.99" stroke="#7A7A92" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <path d="M7.6 25.4 Q 18.53 22.37 25.66 7.19 Q 15.8 15.2 10.0 22.0 Z" fill="url(#gold)"/>
+    <circle cx="27.77" cy="5.06" r="1.15" fill="#FBD05A"/>
+    <circle cx="28.83" cy="7.09" r="0.7" fill="#FFF0BC"/>
+  </g>
 </svg>

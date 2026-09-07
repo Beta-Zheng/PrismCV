@@ -95,8 +95,8 @@ function AppShell() {
         <button onClick={() => setDrawerOpen(true)} className="tool-btn" aria-label="打开导航菜单">
           <IconMenu size={18} />
         </button>
-        <Logo size={24} />
-        <span className="font-display text-[14px] font-black leading-none text-ink-900">PrismCV</span>
+        <Logo size={28} />
+        <span className="font-display text-[14px] font-black leading-none text-ink-900">TouchstoneCV</span>
       </div>
       {/* 抽屉遮罩 */}
       {drawerOpen && <div className="fixed inset-0 z-40 bg-ink-950/45 md:hidden" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
@@ -109,9 +109,9 @@ function AppShell() {
         )}
       >
         <div className="flex items-center gap-2.5 px-4 pb-5 pt-5">
-          <Logo size={36} />
+          <Logo size={44} />
           <div>
-            <p className="font-display text-[16px] font-black leading-none text-ink-900">PrismCV</p>
+            <p className="font-display text-[16px] font-black leading-none text-ink-900">TouchstoneCV</p>
             <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400">resume workbench</p>
           </div>
         </div>

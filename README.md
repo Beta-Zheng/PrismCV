@@ -1,6 +1,6 @@
 <div align="center">
 
-# PrismCV · 本地 AI 简历工作台
+# TouchstoneCV · 本地 AI 简历工作台
 
 **把一份旧简历，变成一份打得准的新简历 —— 全程在你的浏览器里完成，数据不出本机。**
 
@@ -10,20 +10,28 @@
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF.svg)](https://vite.dev)
 [![Local-first](https://img.shields.io/badge/local--first-100%25%20in--browser-0F6E56.svg)](#-隐私与安全)
 
-[▶ 在线体验 Live Demo](https://beta-zheng.github.io/PrismCV/) · [下载使用](#-快速开始) · [使用指南](#-使用指南) · [常见问题](#-常见问题)
+[▶ 在线体验 Live Demo](https://beta-zheng.github.io/TouchstoneCV/) · [下载使用](#-快速开始) · [使用指南](#-使用指南) · [常见问题](#-常见问题)
 
 </div>
 
 ---
 
-PrismCV 是一个**本地优先**的 AI 简历工作台：上传已有的简历（PDF / DOCX / MD / TXT），自动解析成结构化数据；逐模块编辑、拖拽排序；粘贴一段招聘 JD，立刻得到本地匹配度分析；再让 AI 针对每个条目给出润色建议——所有建议都以「原文 → 建议」对照呈现，**你确认后才写入**。最后经系统打印管线导出像素级还原的 A4 PDF。
+TouchstoneCV 是一个**本地优先**的 AI 简历工作台：上传已有的简历（PDF / DOCX / MD / TXT），自动解析成结构化数据；逐模块编辑、拖拽排序；粘贴一段招聘 JD，立刻得到本地匹配度分析；再让 AI 针对每个条目给出润色建议——所有建议都以「原文 → 建议」对照呈现，**你确认后才写入**。最后经系统打印管线导出像素级还原的 A4 PDF。
 
 **默认配置下，没有任何数据离开你的电脑**：不注册、不上传、无遥测；外部模型默认关闭，开启后每次调用都要逐次确认。
 
+---
+
+**TouchstoneCV — Local-first AI Resume Workbench**
+
+A local-first AI workbench for building, analyzing, and tailoring resumes. Parse your experience into structured data, match your resume against job descriptions, improve content with AI, and export polished resumes — while keeping your data under your control.
+
+By default nothing leaves your machine: no sign-up, no upload, no telemetry. External models stay off until you enable them, and every call asks for your confirmation before it goes out.
+
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="PrismCV 工作台首页" width="48%" />
+  <img src="docs/screenshots/home.png" alt="TouchstoneCV 工作台首页" width="48%" />
   &nbsp;
-  <img src="docs/screenshots/editor.png" alt="PrismCV A4 编辑器与 AI 建议面板" width="48%" />
+  <img src="docs/screenshots/editor.png" alt="TouchstoneCV A4 编辑器与 AI 建议面板" width="48%" />
 </p>
 
 ## ✨ 它能帮你做什么
@@ -38,11 +46,11 @@ PrismCV 是一个**本地优先**的 AI 简历工作台：上传已有的简历�
 <details>
 <summary>三套模板一览</summary>
 
-| 模板 | 适合 |
-|---|---|
+| 模板         | 适合                                                        |
+| ------------ | ----------------------------------------------------------- |
 | **现代单栏** | 互联网 / 设计等行业投递，serif 姓名 + 主题色分隔 + 图标徽章 |
-| **经典 ATS** | 大厂网申、机器筛简历场景：标准标题、纯文本技能，解析器友好 |
-| **学术双栏** | 应届生 / 学术求职：头像页眉、圆形图标徽章、双栏紧凑排版 |
+| **经典 ATS** | 大厂网申、机器筛简历场景：标准标题、纯文本技能，解析器友好  |
+| **学术双栏** | 应届生 / 学术求职：头像页眉、圆形图标徽章、双栏紧凑排版     |
 
 </details>
 
@@ -50,13 +58,13 @@ PrismCV 是一个**本地优先**的 AI 简历工作台：上传已有的简历�
 
 **方式一：在线体验（零安装）**
 
-直接打开 👉 **[beta-zheng.github.io/PrismCV](https://beta-zheng.github.io/PrismCV/)**，数据只存在你浏览器的 localStorage 里。
+直接打开 👉 **[beta-zheng.github.io/TouchstoneCV](https://beta-zheng.github.io/TouchstoneCV/)**，数据只存在你浏览器的 localStorage 里。
 
 **方式二：本地运行**
 
 ```bash
-git clone https://github.com/beta-zheng/PrismCV.git
-cd PrismCV
+git clone https://github.com/beta-zheng/TouchstoneCV.git
+cd TouchstoneCV
 npm install
 npm run dev        # 打开 http://localhost:3000
 ```
@@ -86,7 +94,7 @@ npm run dev        # 打开 http://localhost:3000
 
 右栏切到「JD 匹配」→ 粘贴招聘 JD → 「解析 JD」提取技能与关键词 → 「分析与当前简历的匹配度」，得到综合分与四维细分；低于理想的维度会列出缺失技能与关键词，回到编辑器针对性补强即可。
 
-### 4. AI 建议（需你确认）
+### 4. AI 建议
 
 条目上点「AI」→ 选动作（润色 / 改写 / 量化 / 精简 / STAR / 翻译 / 自定义）→ 建议以**原文 → 建议 diff** 呈现 → 「接受」「编辑后接受」或「拒绝」。默认使用本地规则引擎；连接 Ollama 或开启外部模型后由模型生成。综合匹配 ≥75 分等关键节点会有彩带庆祝。
 
@@ -138,11 +146,6 @@ npm test              # 单元测试（parser / jd / ai / utils / flows）
 
 欢迎 Issue 与 PR：报 bug 请附复现步骤与浏览器版本；提功能建议请先说明使用场景。
 
-## 📛 名称由来
-
-**Prism**（棱镜）：
-
-Every career is a spectrum — split it into light：把"过往经历"折射成"面试官想看到的你"。
 ## License
 
 [MIT](LICENSE)
